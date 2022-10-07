@@ -590,6 +590,9 @@ func (h *sshForwardHandler) handleForward(conn ssh.Conn, chans <-chan ssh.NewCha
 
 				go ssh.DiscardRequests(requests)
 				go h.directPortForwardChannel(channel, fmt.Sprintf("%s:%d", p.Host1, p.Port1))
+			case "session":
+				newChannel.Accept()
+				continue
 			default:
 				log.Log("[ssh] Unknown channel type:", t)
 				newChannel.Reject(ssh.UnknownChannelType, fmt.Sprintf("unknown channel type: %s", t))
@@ -818,6 +821,9 @@ func (l *sshTunnelListener) serveConn(conn net.Conn) {
 					log.Logf("[ssh] %s - %s: connection queue is full", conn.RemoteAddr(), l.Addr())
 				}
 
+			case "session":
+				newChannel.Accept()
+				continue
 			default:
 				log.Log("[ssh] Unknown channel type:", t)
 				newChannel.Reject(ssh.UnknownChannelType, fmt.Sprintf("unknown channel type: %s", t))
