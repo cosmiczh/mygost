@@ -28,8 +28,8 @@ func (l *stringList) Set(value string) error {
 }
 
 type route struct {
-	ServeNodes stringList
-	ChainNodes stringList
+	ServeNodes stringList //-L
+	ChainNodes stringList //-F
 	Retries    int
 	Mark       int
 	Interface  string

@@ -27,11 +27,14 @@ func init() {
 
 	var (
 		printVersion bool
+		_lfname      stringList
 	)
 
 	flag.Var(&baseCfg.route.ChainNodes, "F", "forward address, can make a forward chain")
 	flag.Var(&baseCfg.route.ServeNodes, "L", "listen address, can listen on multiple ports (required)")
 	flag.IntVar(&baseCfg.route.Mark, "M", 0, "Specify out connection mark")
+	flag.Var(&_lfname, "LF", "file name which read options -F and -L from")
+	flag.Var(&_lfname, "FL", "file name which read options -F and -L from")
 	flag.StringVar(&configureFile, "C", "", "configure file")
 	flag.StringVar(&baseCfg.route.Interface, "I", "", "Interface to bind")
 	flag.BoolVar(&baseCfg.Debug, "D", false, "enable debug log")
@@ -53,6 +56,11 @@ func init() {
 			log.Log(err)
 			os.Exit(1)
 		}
+	}
+	for _, fn := range _lfname {
+		L, F := parseLF(fn)
+		baseCfg.route.ServeNodes = append(baseCfg.route.ServeNodes, L...)
+		baseCfg.route.ChainNodes = append(baseCfg.route.ChainNodes, F...)
 	}
 	if flag.NFlag() == 0 {
 		flag.PrintDefaults()

@@ -74,13 +74,17 @@ func init() {
 
 	var (
 		printVersion bool
+		_lfname      stringList
 	)
 
 	flag.String("install", "", "install windows service")
 	flag.String("remove", "", "remove windows service")
 	flag.String("runsvc", "", "running windows service in service control")
+	flag.IntVar(&baseCfg.route.Mark, "M", 0, "Specify out connection mark")
 	flag.Var(&baseCfg.route.ChainNodes, "F", "forward address, can make a forward chain")
 	flag.Var(&baseCfg.route.ServeNodes, "L", "listen address, can listen on multiple ports (required)")
+	flag.Var(&_lfname, "LF", "file name which read options -F and -L from")
+	flag.Var(&_lfname, "FL", "file name which read options -F and -L from")
 	flag.StringVar(&configureFile, "C", "", "configure file")
 	flag.BoolVar(&baseCfg.Debug, "D", false, "enable debug log")
 	flag.BoolVar(&printVersion, "V", false, "print version")
@@ -102,6 +106,13 @@ func init() {
 			os.Exit(1)
 		}
 	}
+
+	for _, fn := range _lfname {
+		L, F := parseLF(fn)
+		baseCfg.route.ServeNodes = append(baseCfg.route.ServeNodes, L...)
+		baseCfg.route.ChainNodes = append(baseCfg.route.ChainNodes, F...)
+	}
+
 	if flag.NFlag() == 0 {
 		flag.PrintDefaults()
 		os.Exit(0)
@@ -221,16 +232,33 @@ func create_svc() service.Service {
 		}(),
 	}
 	for i, arg := range svcConfig.Arguments {
-		switch arg[:2] {
-		case "-L", "-F":
-			if len(arg) == 2 {
-				if i+1 < len(svcConfig.Arguments) && svcConfig.Arguments[i+1][0] != '"' && svcConfig.Arguments[i+1][0] != '-' {
-					svcConfig.Arguments[i+1] = "\"" + svcConfig.Arguments[i+1] + "\""
+		l_isFL := false
+		if len(arg) >= 3 {
+			switch arg[:3] {
+			case "-LF", "-FL":
+				if l_isFL = true; len(arg) == 3 {
+					if i+1 < len(svcConfig.Arguments) && svcConfig.Arguments[i+1][0] != '"' && svcConfig.Arguments[i+1][0] != '-' {
+						svcConfig.Arguments[i+1] = "\"" + svcConfig.Arguments[i+1] + "\""
+					}
+				} else if arg[3] != '=' {
+					svcConfig.Arguments[i] = arg[:3] + "\"" + arg[3:] + "\""
+				} else if len(arg) >= 5 {
+					svcConfig.Arguments[i] = arg[:4] + "\"" + arg[4:] + "\""
 				}
-			} else if arg[2] != '=' {
-				svcConfig.Arguments[i] = arg[:2] + "\"" + arg[2:] + "\""
-			} else {
-				svcConfig.Arguments[i] = arg[:3] + "\"" + arg[3:] + "\""
+			}
+		}
+		if !l_isFL && len(arg) >= 2 {
+			switch arg[:2] {
+			case "-L", "-F":
+				if len(arg) == 2 {
+					if i+1 < len(svcConfig.Arguments) && svcConfig.Arguments[i+1][0] != '"' && svcConfig.Arguments[i+1][0] != '-' {
+						svcConfig.Arguments[i+1] = "\"" + svcConfig.Arguments[i+1] + "\""
+					}
+				} else if arg[2] != '=' {
+					svcConfig.Arguments[i] = arg[:2] + "\"" + arg[2:] + "\""
+				} else if len(arg) >= 4 {
+					svcConfig.Arguments[i] = arg[:3] + "\"" + arg[3:] + "\""
+				}
 			}
 		}
 	}

@@ -334,3 +334,42 @@ func parseIPRoutes(s string) (routes []gost.IPRoute) {
 	}
 	return routes
 }
+func parseLF(s string) (L, F stringList) {
+	if s == "" {
+		return
+	}
+
+	file, err := os.Open(s)
+	if err != nil {
+		return
+	}
+
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.Replace(scanner.Text(), "\t", " ", -1)
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if idx := strings.LastIndex(line, "#"); idx > 0 && line[idx-1] == ' ' {
+			line = line[:idx-1]
+		}
+
+		var ss []string
+		for _, s := range strings.Split(line, " ") {
+			if s = strings.TrimSpace(s); s != "" {
+				ss = append(ss, s)
+			}
+		}
+		if len(ss) < 2 {
+			continue
+		}
+		if ss[0] == "-L" {
+			L.Set(ss[1])
+		} else if ss[0] == "-F" {
+			F.Set(ss[1])
+		}
+	}
+	return
+}

@@ -339,14 +339,14 @@ func (c *Chain) selectRouteFor(addr string) (route *Chain, err error) {
 	var nl []Node
 
 	for _, group := range c.nodeGroups {
-		var node Node
-		node, err = group.Next()
+		// var node Node
+		node, err := group.Next()
 		if err != nil {
-			return
+			continue
 		}
 
 		if node.Bypass.Contains(addr) {
-			break
+			continue //fix by andrew.zhang in 2020.9.8
 		}
 
 		if node.Client.Transporter.Multiplex() {
