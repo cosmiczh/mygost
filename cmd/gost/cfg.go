@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/ginuerzh/gost"
 )
@@ -357,7 +358,7 @@ func parseLF(s string) (L, F stringList) {
 		}
 
 		var ss []string
-		for _, s := range strings.Split(line, " ") {
+		for _, s := range SplitFields(line, "\t =", false) {
 			if s = strings.TrimSpace(s); s != "" {
 				ss = append(ss, s)
 			}
@@ -372,4 +373,9 @@ func parseLF(s string) (L, F stringList) {
 		}
 	}
 	return
+}
+func SplitFields(s string, sepchas string, or_space bool) []string {
+	return strings.FieldsFunc(s, func(r rune) bool {
+		return or_space && unicode.IsSpace(r) || len(sepchas) > 0 && strings.IndexRune(sepchas, r) >= 0
+	})
 }
