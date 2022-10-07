@@ -158,6 +158,7 @@ func NewBypassPatterns(reversed, chn bool, patterns ...string) *Bypass {
 // Contains reports whether the bypass includes addr.
 func (bp *Bypass) Contains(addr string) bool {
 	if bp == nil || addr == "" {
+		Stackf("[1]Contains(%s) ret:false\n", addr)
 		return false
 	}
 
@@ -172,6 +173,7 @@ func (bp *Bypass) Contains(addr string) bool {
 	defer bp.mux.RUnlock()
 
 	if len(bp.matchers) == 0 {
+		fmt.Printf("[2]Contains(%s) ret:false\n", addr)
 		return false
 	}
 
@@ -185,29 +187,31 @@ func (bp *Bypass) Contains(addr string) bool {
 			break
 		}
 	}
-	if !matched && bp.chn {
+	if matched || !bp.chn {
+		fmt.Printf("[3]Contains(%s,bp.chn:%v) ret:false\n", addr, bp.chn)
+	} else {
 		var ipchn1 *ipchn
 		if addr2, found := name_ip.Load(addr); found {
 			ipchn1 = addr2.(*ipchn)
 		} else if addr2, _ := net.ResolveIPAddr("ip4", addr); addr2 == nil { //无法解析的域名
-			ipchn1 =&ipchn{ip:addr2.String()}
-			name_ip.Store(addr, ipchn1)	//加上这行可以优化无法解析的域名的响应
+			ipchn1 = &ipchn{ip: addr2.String()}
+			name_ip.Store(addr, ipchn1) //加上这行可以优化无法解析的域名的响应
 		} else {
-			ipchn1 =&ipchn{ip:addr2.String()}
+			ipchn1 = &ipchn{ip: addr2.String()}
 			name_ip.Store(addr, ipchn1)
 		}
-		log.Printf("检测[IP:%s<=DN:%s]", ipchn1.ip ,addr)
+		log.Printf("检测[IP:%s<=DN:%s]\n", ipchn1.ip, addr)
 		if ipchn1.chn != 0 {
-			matched =ipchn1.chn > 0
-		}else if matched = chnips_contains(ipchn1.ip, true); matched {
-			ipchn1.chn =1
+			matched = ipchn1.chn > 0
+		} else if matched = chnips_contains(ipchn1.ip, true); matched {
+			ipchn1.chn = 1
 		} else {
-			ipchn1.chn =-1
+			ipchn1.chn = -1
 		}
 		if matched {
-			log.Printf("位于[中国]")
+			log.Printf("addr:%s位于[墙内]\n", addr)
 		} else {
-			log.Printf("位于[外国]")
+			log.Printf("addr:%s位于[墙外]\n", addr)
 		}
 	}
 	return !bp.reversed && matched ||
@@ -215,7 +219,11 @@ func (bp *Bypass) Contains(addr string) bool {
 }
 
 var name_ip sync.Map
-type ipchn struct{ip string;chn int8}
+
+type ipchn struct {
+	ip  string
+	chn int8
+}
 
 // AddMatchers appends matchers to the bypass matcher list.
 func (bp *Bypass) AddMatchers(matchers ...Matcher) {

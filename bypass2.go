@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -20,8 +21,8 @@ type IPv4sec struct {
 }
 
 var (
-	file1 = GetExeBaseDir() + "/chn_ip.txt"
-	file2 = GetExeBaseDir() + "/ipipfree.ipdb"
+	file1 = GetExeDir() + "/chn_ip.txt"
+	file2 = GetExeDir() + "/ipipfree.ipdb"
 )
 var (
 	g_lastread               = time.Now()
@@ -54,7 +55,7 @@ func chnips_contains(ip string, in_chn bool) bool {
 									// loglv.War.Printf("IsAcceptedIP(ip:%s)1 ipipfree.ipdb文件已经被删除，关闭ipdb过滤功能", ip)
 								}
 							} else {
-								// loglv.Err.Printf("IsAcceptedIP(ip:%s)2 error:%v", ip, err1)
+								fmt.Printf("IsAcceptedIP(ip:%s)2 错误:%v\n", ip, err1)
 							}
 						}
 						if err1 != nil {
@@ -64,7 +65,7 @@ func chnips_contains(ip string, in_chn bool) bool {
 									// loglv.War.Printf("IsAcceptedIP(ip:%s)3 chn_ip.txt文件已经被删除，关闭txtIP过滤功能", ip)
 								}
 							} else {
-								// loglv.Err.Printf("IsAcceptedIP(ip:%s)4 error:%v", ip, err1)
+								fmt.Printf("IsAcceptedIP(ip:%s)4 错误:%v\n", ip, err1)
 							}
 						}
 						if len(l_ipv4s) > 0 {
@@ -97,24 +98,30 @@ func chnips_contains(ip string, in_chn bool) bool {
 	if len(g_ipv4secs) < 1 { //如果没有配置，就所有都放行
 		// loglv.Dbg.Printf("IsAcceptedIP(ip:%s) 0个区段，无ip过滤功能", ip)
 		if g_ipdb == nil {
+			fmt.Printf("[1]IP:%s,ret:true\n", ip)
 			return true //两个都不生效和后面有一个生效的状况是不一样的
 		}
 		if ret, err := g_ipdb.Find(ip, "CN"); err != nil {
+			fmt.Printf("[2]IP:%s,ret:true\n", ip)
 			return true
 		} else if len(ret) < 1 {
+			fmt.Printf("[3]IP:%s,ret:%v\n", ip, !in_chn)
 			return !in_chn
 		} else if ret[0] != "中国" {
+			fmt.Printf("[4]IP:%s,ret:%v\n", ip, !in_chn)
 			return !in_chn
-		} else if len(ret) < 2 { 
+		} else if len(ret) < 2 {
+			fmt.Printf("[5]IP:%s,ret:%v\n", ip, in_chn)
 			return in_chn
 		} else {
+			fmt.Printf("[6]IP:%s,ret[1]:%s,in_chn:%v\n", ip, ret[1], in_chn)
 			l_in_twhkmk := (ret[1] == "台湾") || (ret[1] == "香港") || (ret[1] == "澳门")
 			return (in_chn && !l_in_twhkmk) || (!in_chn && l_in_twhkmk)
 		}
 	}
 	l_ip, err := SplitInt16s(ip, ".", true)
 	if err != nil || len(l_ip) != IPv4len {
-		// loglv.Err.Printf("IPv4地址格式错误:%v", err)
+		fmt.Printf("[9]IPv4地址%s格式错误:%v\n", ip, err)
 		return false
 	}
 	var l_nip uint32
@@ -125,6 +132,7 @@ func chnips_contains(ip string, in_chn bool) bool {
 	defer g_mtx.RLock()()
 	l_idx := Upperbound(len(g_ipv4secs), func(i int) bool { return g_ipv4secs[i].start > l_nip })
 	if l_idx > 0 && l_nip <= g_ipv4secs[l_idx-1].end {
+		fmt.Printf("[10]IP:%s,ret:%v\n", ip, in_chn)
 		return in_chn
 	}
 	// loglv.Dbg.Printf("IsAcceptedIP(ip:%s) 处于第[%d.%d.%d.%d->%d.%d.%d.%d]区段", ip,
@@ -132,17 +140,23 @@ func chnips_contains(ip string, in_chn bool) bool {
 	// 	g_ipv4secs[l_idx-1].end>>24, g_ipv4secs[l_idx-1].end<<8>>24, g_ipv4secs[l_idx-1].end<<16>>24, g_ipv4secs[l_idx-1].end<<24>>24,
 	// )
 	if g_ipdb == nil {
+		fmt.Printf("[11]IP:%s,ret:false\n", ip)
 		return false //有一个生效和前面的两个都不生效的状况是不一样的
 	}
 	if ret, err := g_ipdb.Find(ip, "CN"); err != nil {
+		fmt.Printf("[12]IP:%s,ret:true\n", ip)
 		return true
 	} else if len(ret) < 1 {
+		fmt.Printf("[13]IP:%s,ret:%v\n", ip, !in_chn)
 		return !in_chn
 	} else if ret[0] != "中国" {
+		fmt.Printf("[14]IP:%s,ret:%v\n", ip, !in_chn)
 		return !in_chn
 	} else if len(ret) < 2 {
+		fmt.Printf("[15]IP:%s,ret:%v\n", ip, in_chn)
 		return in_chn
 	} else {
+		fmt.Printf("[16]IP:%s,ret[1]:%s,in_chn:%v\n", ip, ret[1], in_chn)
 		l_in_twhkmk := (ret[1] == "台湾") || (ret[1] == "香港") || (ret[1] == "澳门")
 		return (in_chn && !l_in_twhkmk) || (!in_chn && l_in_twhkmk)
 	}
@@ -153,7 +167,9 @@ func ReadIPset(file1, file2 string, f1mod, f2mod *time.Time, f1size, f2size *int
 	ret1ips []IPv4sec, ret2ips *ipdb.City, ret1err, ret2err error) {
 
 	l_fi2, ret2err := os.Stat(file2)
-	if ret2err == nil {
+	if ret2err != nil {
+		fmt.Printf("文件操作os.Stat(%s)失败:%v\n", file2, ret2err)
+	} else {
 		l_modified := false
 		if modtime := l_fi2.ModTime(); !f2mod.Equal(modtime) {
 			*f2mod = modtime
@@ -166,15 +182,20 @@ func ReadIPset(file1, file2 string, f1mod, f2mod *time.Time, f1size, f2size *int
 
 		if l_modified {
 			ret2ips, ret2err = ipdb.NewCity(file2)
+			if ret2ips == nil || ret2err != nil {
+				fmt.Printf("文件操作ipdb.NewCity(%s)失败:%v\n", file2, ret2err)
+			}
 		}
 	}
 
 	l_fd1, ret1err := os.Open(file1)
 	if l_fd1 == nil || ret1err != nil {
+		fmt.Printf("文件操作os.Open(%s)失败:%v\n", file1, ret1err)
 		return
 	}
 	defer l_fd1.Close()
 	if fi1, err := l_fd1.Stat(); err != nil {
+		fmt.Printf("文件操作os.Stat(%s)失败:%v\n", file1, ret1err)
 		ret1err = err
 		return
 	} else {
@@ -277,4 +298,10 @@ func ReadIPset(file1, file2 string, f1mod, f2mod *time.Time, f1size, f2size *int
 		ret1ips = ret1ips[:len(ret1ips)-l_deleted_count]
 	}
 	return
+}
+func Stackf(format string, v ...interface{}) {
+	l_buf := [2048]byte{'\n'}
+	l_stack := l_buf[:runtime.Stack(l_buf[1:len(l_buf)-2], false)+2]
+	l_stack[len(l_stack)-1] = '\n'
+	fmt.Printf("\n" + fmt.Sprintf(format, v...) + string(l_stack))
 }

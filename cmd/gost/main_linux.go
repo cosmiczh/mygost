@@ -57,8 +57,11 @@ func init() {
 			os.Exit(1)
 		}
 	}
-	for _, fn := range _lfname {
+
+	for i, fn := range _lfname {
+		fmt.Printf("fn[%d]=%s\n", i, fn)
 		L, F := parseLF(fn)
+		fmt.Printf("fn[%d].L=%v  F=%v\n", i, L, F)
 		baseCfg.route.ServeNodes = append(baseCfg.route.ServeNodes, L...)
 		baseCfg.route.ChainNodes = append(baseCfg.route.ChainNodes, F...)
 	}
@@ -67,8 +70,8 @@ func init() {
 		os.Exit(0)
 	}
 }
-
 func main() {
+	defer MainStartup("/tmp")()
 	if pprofEnabled {
 		go func() {
 			log.Log("profiling server on", pprofAddr)
@@ -99,7 +102,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	select {}
+	MainWait(nil)
+	// select {}
 }
 
 func start() error {

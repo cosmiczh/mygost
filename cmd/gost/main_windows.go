@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"sort"
 	"strings"
 
 	_ "net/http/pprof"
@@ -112,7 +111,6 @@ func init() {
 		baseCfg.route.ServeNodes = append(baseCfg.route.ServeNodes, L...)
 		baseCfg.route.ChainNodes = append(baseCfg.route.ChainNodes, F...)
 	}
-
 	if flag.NFlag() == 0 {
 		flag.PrintDefaults()
 		os.Exit(0)
@@ -326,24 +324,4 @@ func UniqueInt(arr ...int) []int {
 		func(i, j int) bool { return arr[i] == arr[j] },
 		func(i, j int) { arr[i] = arr[j] })
 	return arr[:len(arr)-l_deletedcount]
-}
-
-type struct4sort struct {
-	m_len   int
-	mf_less func(i, j int) bool
-	mf_swap func(i, j int)
-}
-
-func (this *struct4sort) Len() int {
-	return this.m_len
-}
-func (this *struct4sort) Less(i, j int) bool {
-	return this.mf_less(i, j)
-}
-func (this *struct4sort) Swap(i, j int) {
-	this.mf_swap(i, j)
-}
-
-func Sort(nlen int, fless func(i, j int) bool, fswap func(i, j int)) {
-	sort.Sort(&struct4sort{m_len: nlen, mf_less: fless, mf_swap: fswap})
 }

@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/url"
@@ -189,6 +191,7 @@ func parseBypass(s string, chn bool) *gost.Bypass {
 		if chn {
 			return gost.NewBypass(false, true)
 		}
+		gost.Stackf("[1]parseBypass(s:%s,chn:%v)\n", s, chn)
 		return nil
 	}
 	var matchers []gost.Matcher
@@ -346,10 +349,20 @@ func parseLF(s string) (L, F stringList) {
 	}
 
 	defer file.Close()
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.Replace(scanner.Text(), "\t", " ", -1)
+	var l_err error = nil
+
+	for rdr, lineno := bufio.NewReader(file), 0; l_err != io.EOF; lineno++ {
+		var l_byts []byte
+		l_byts, l_err = rdr.ReadBytes('\n')
+		if l_err != nil && l_err != io.EOF {
+			fmt.Printf("文件末尾的格式错误.\n")
+			return nil, nil
+		} else if len(l_byts) < 1 {
+			continue
+		}
+		line := strings.Replace(string(l_byts), "\t", " ", -1)
 		line = strings.TrimSpace(line)
+		fmt.Printf("line[%d]=%s\n", lineno, line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
@@ -358,7 +371,7 @@ func parseLF(s string) (L, F stringList) {
 		}
 
 		var ss []string
-		for _, s := range SplitFields(line, "\t =", false) {
+		for _, s := range SplitFields(line, "\t ", false) {
 			if s = strings.TrimSpace(s); s != "" {
 				ss = append(ss, s)
 			}
