@@ -13,7 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ginuerzh/gost"
+	// "github.com/ginuerzh/gost/zbutil/loglv"
+	"github.com/ginuerzh/gost/zbutil"
 )
 
 func GetOS() string { return "linux" }
@@ -47,12 +48,12 @@ var (
 )
 
 func MainStartup(workdir string) func() {
-	appName = GetExeBaseName()
-	pidFile = gost.GetExeDir() + "/pid/" + GetExeBaseName() + ".pid"
-	envName = gost.GetExeDir() + "/" + GetExeName() + "__Daemon"
+	appName = zbutil.GetExeBaseName()
+	pidFile = zbutil.GetExeDir() + "/pid/" + zbutil.GetExeBaseName() + ".pid"
+	envName = zbutil.GetExeDir() + "/" + zbutil.GetExeName() + "__Daemon"
 
-	if tmot := CmdParmLike("-f="); len(tmot) > 0 {
-		if tmot, err := Atoi(tmot[len("-f="):]); err == nil {
+	if tmot := zbutil.CmdParmLike("-f="); len(tmot) > 0 {
+		if tmot, err := zbutil.Atoi(tmot[len("-f="):]); err == nil {
 			stop_tmot = tmot
 		}
 	}
@@ -60,13 +61,13 @@ func MainStartup(workdir string) func() {
 forloop:
 	for os.Getenv(envName) != "true" { //master
 		switch {
-		case len(CmdParmLike("start")) == len("start"):
+		case len(zbutil.CmdParmLike("start")) == len("start"):
 			if isRunning() {
 				fmt.Printf("[%d] %s is running\n", pidVal, appName)
 			} else { //fork daemon进程
 				svcstart()
 			}
-		case len(CmdParmLike("restart")) == len("restart"):
+		case len(zbutil.CmdParmLike("restart")) == len("restart"):
 			if !isRunning() {
 				fmt.Printf("%s not running\n", appName)
 				svcstart()
@@ -74,19 +75,19 @@ forloop:
 				fmt.Printf("[%d] %s restart now\n", pidVal, appName)
 				restart(pidVal)
 			}
-		case len(CmdParmLike("stop")) == len("stop"):
+		case len(zbutil.CmdParmLike("stop")) == len("stop"):
 			if !isRunning() {
 				fmt.Printf("%s not running\n", appName)
 			} else {
 				svcstop(pidVal)
 			}
-		case len(CmdParmLike("stat")) == len("stat"):
+		case len(zbutil.CmdParmLike("stat")) == len("stat"):
 			if !isRunning() {
 				fmt.Printf("%s not running\n", appName)
 			} else {
 				fmt.Printf("[%d] %s is running\n", pidVal, appName)
 			}
-		case len(CmdParmLike("sig47")) == len("sig47"):
+		case len(zbutil.CmdParmLike("sig47")) == len("sig47"):
 			if !isRunning() {
 				fmt.Printf("%s not running\n", appName)
 			} else if syscall.Kill(pidVal, 47) != nil {
@@ -94,7 +95,7 @@ forloop:
 			} else {
 				fmt.Printf("[%d] %s sig47(stackall) be sent successfully\n", pidVal, appName)
 			}
-		case len(CmdParmLike("sig48")) == len("sig48"):
+		case len(zbutil.CmdParmLike("sig48")) == len("sig48"):
 			if !isRunning() {
 				fmt.Printf("%s not running\n", appName)
 			} else if syscall.Kill(pidVal, 48) != nil {
@@ -102,7 +103,7 @@ forloop:
 			} else {
 				fmt.Printf("[%d] %s sig48(cpuprof) be sent successfully\n", pidVal, appName)
 			}
-		case len(CmdParmLike("sig50")) == len("sig50"):
+		case len(zbutil.CmdParmLike("sig50")) == len("sig50"):
 			if !isRunning() {
 				fmt.Printf("%s not running\n", appName)
 			} else if syscall.Kill(pidVal, 50) != nil {
@@ -110,7 +111,7 @@ forloop:
 			} else {
 				fmt.Printf("[%d] %s sig50(heaprof) be sent successfully\n", pidVal, appName)
 			}
-		case len(CmdParmLike("sig51")) == len("sig51"):
+		case len(zbutil.CmdParmLike("sig51")) == len("sig51"):
 			if !isRunning() {
 				fmt.Printf("%s not running\n", appName)
 			} else if syscall.Kill(pidVal, 51) != nil {
@@ -118,7 +119,7 @@ forloop:
 			} else {
 				fmt.Printf("[%d] %s sig51(memlog) be sent successfully\n", pidVal, appName)
 			}
-		case len(CmdParmLike("sig52")) == len("sig52"):
+		case len(zbutil.CmdParmLike("sig52")) == len("sig52"):
 			if !isRunning() {
 				fmt.Printf("%s not running\n", appName)
 			} else if syscall.Kill(pidVal, 52) != nil {
@@ -126,7 +127,7 @@ forloop:
 			} else {
 				fmt.Printf("[%d] %s sig52(memlog switch interval) be sent successfully\n", pidVal, appName)
 			}
-		case len(CmdParmLike("-h")) == len("-h"):
+		case len(zbutil.CmdParmLike("-h")) == len("-h"):
 			fmt.Printf("Usage: %s [-log={logfile}]] [start|restart|stop|stat|sig48(cpuprof)|sig50(heaprof)|sig51(memlog)|sig52(memlog sw)]\n", appName)
 		default:
 			isdaemon = false
@@ -140,35 +141,9 @@ forloop:
 		os.Chdir(workdir)
 	}
 	time.Sleep(50 * time.Millisecond)
-	fmt.Printf("[%d] child report:%s\n", os.Getpid(), gost.GetExeDir()+"/"+GetExeName())
+	fmt.Printf("[%d] child report:%s\n", os.Getpid(), zbutil.GetExeDir()+"/"+zbutil.GetExeName())
 
-	l_logfile := ""
-	if l_logfile = CmdParmLike("-log="); len(l_logfile) > 0 {
-		l_logfile = l_logfile[len("-log="):]
-	} else if l_logfile = CmdParmLike("--logfile="); len(l_logfile) > 0 {
-		l_logfile = l_logfile[len("--logfile="):]
-	}
-	if len(l_logfile) < 1 {
-		os.Mkdir(gost.GetExeDir()+"/log", 0755)
-		l_logfile = gost.GetExeDir() + "/log/" + GetExeBaseName() + ".log"
-		l_bakfile := gost.GetExeDir() + "/log/" + time.Now().Format("06-01-02_15.04.05_") + GetExeBaseName() + ".log"
-		os.Rename(l_logfile, l_bakfile)
-
-		l_osfils, _ := SearchFile(nil, gost.GetExeDir()+"/log", GetExeBaseName()+".out")
-		if len(l_osfils) > 0 && l_osfils[0].Size() > 0 {
-			l_logfile = gost.GetExeDir() + "/log/" + GetExeBaseName() + ".out"
-			l_bakfile = gost.GetExeDir() + "/log/" + time.Now().Format("06-01-02_15.04.05_") + GetExeBaseName() + ".out"
-			os.Rename(l_logfile, l_bakfile)
-		}
-	}
-	_, e := os.OpenFile(l_logfile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
-	if e == nil {
-		// loglv.SetOutput(f)
-		if isdaemon {
-			std2null()
-		}
-	}
-
+	zbutil.InitLog(isdaemon)
 	return func() { os.Remove(pidFile) }
 }
 
@@ -196,7 +171,7 @@ func svcstart() {
 	os.Setenv(envName, "true")
 
 	func() { //保存pid
-		os.Mkdir(gost.GetExeDir()+"/pid", 0755)
+		os.Mkdir(zbutil.GetExeDir()+"/pid", 0755)
 		file, err := os.OpenFile(pidFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Printf("pidFile[%s] creation failure:%v\n", pidFile, err)
@@ -209,12 +184,12 @@ func svcstart() {
 		Env:   os.Environ(),
 		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
 	}
-	cpid, err := syscall.ForkExec(gost.GetExeDir()+"/"+GetExeName(), os.Args, procAttr)
+	cpid, err := syscall.ForkExec(zbutil.GetExeDir()+"/"+zbutil.GetExeName(), os.Args, procAttr)
 	if err != nil {
-		fmt.Printf("%s start failure:%v,%s\n", appName, err, gost.GetExeDir()+"/"+GetExeName())
+		fmt.Printf("%s start failure:%v,%s\n", appName, err, zbutil.GetExeDir()+"/"+zbutil.GetExeName())
 		os.Exit(-2)
 	}
-	fmt.Printf("[%d] parent report child[%d]:%s\n", os.Getpid(), cpid, gost.GetExeDir()+"/"+GetExeName())
+	fmt.Printf("[%d] parent report child[%d]:%s\n", os.Getpid(), cpid, zbutil.GetExeDir()+"/"+zbutil.GetExeName())
 
 	//wait for child startup
 	l_printdot, l_had_printed := false, false
@@ -278,7 +253,7 @@ func waitexit(cpid int) int {
 			fmt.Println("err:", err)
 		}
 		if time.Now().Sub(l_begin) >= time.Duration(stop_tmot)*time.Second {
-			if len(CmdParmLike("-f")) >= len("-f") {
+			if len(zbutil.CmdParmLike("-f")) >= len("-f") {
 				return 2
 			}
 			return 2 //-1
@@ -369,9 +344,9 @@ func MainWait(getio GetIOinfo) {
 		l_cpuf_fp, l_cpuf_name := (*os.File)(nil), ""
 		lf_startcpuprof := func() {
 			// defer loglv.Err.Recoverf("start cpuprof panic.")
-			l_cpuf_name = fmt.Sprintf("%s/log/%s_%s.cpu.pprof", gost.GetExeDir(), GetExeBaseName(), time.Now().Format("06-01-02_15.04.05"))
+			l_cpuf_name = fmt.Sprintf("%s/%s_%s.cpu.pprof", zbutil.GetLogDir(), zbutil.GetExeBaseName(), time.Now().Format("06-01-02_15.04.05"))
 
-			os.Mkdir(gost.GetExeDir()+"/log", 0755)
+			os.Mkdir(zbutil.GetLogDir(), 0755)
 			l_err := error(nil)
 			if l_cpuf_fp, l_err = os.Create(l_cpuf_name); l_err != nil {
 				/*loglv.Err.*/ fmt.Printf("\n\tCan't create CPU profile[%s] error:%v", l_cpuf_name, l_err)
@@ -431,7 +406,7 @@ func MainWait(getio GetIOinfo) {
 			case syscall.SIGHUP:
 				// break FOR_LOOP	//某些路由器嵌入式linux终端退出daemon会收到这个挂起信号
 			case syscall.Signal(47):
-				l_file := gost.GetExeDir() + "/log/stack_" + GetExeBaseName() + time.Now().Format("_06-01-02_15.04.05") + ".log"
+				l_file := zbutil.GetLogDir() + "/stack_" + zbutil.GetExeBaseName() + time.Now().Format("_06-01-02_15.04.05") + ".log"
 				f, e := os.OpenFile(l_file, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
 				if e != nil {
 					/*loglv.Err.*/ fmt.Printf("OpenStackFile(%s) error:%v", l_file, e)
@@ -457,7 +432,7 @@ func MainWait(getio GetIOinfo) {
 				func() {
 					// defer loglv.Err.Recoverf("write memprof panic.")
 					l_memf_fp, l_memf_name := (*os.File)(nil),
-						fmt.Sprintf("%s/log/%s_%s.mem.pprof", gost.GetExeDir(), GetExeBaseName(), time.Now().Format("06-01-02_15.04.05"))
+						fmt.Sprintf("%s/%s_%s.mem.pprof", zbutil.GetLogDir(), zbutil.GetExeBaseName(), time.Now().Format("06-01-02_15.04.05"))
 
 					l_err := error(nil)
 					if l_memf_fp, l_err = os.Create(l_memf_name); l_err != nil {
@@ -515,9 +490,9 @@ func MainWait(getio GetIOinfo) {
 
 func logmemstat(waitgrp *sync.WaitGroup, gap_chan chan time.Duration) {
 	defer waitgrp.Done()
-	os.Mkdir(gost.GetExeDir()+"/log", 0755)
+	os.Mkdir(zbutil.GetLogDir(), 0755)
 
-	l_memlogfile := fmt.Sprintf("%s/log/%s_%s.mem.log", gost.GetExeDir(), GetExeBaseName(), time.Now().Format("06-01-02_15.04.05"))
+	l_memlogfile := fmt.Sprintf("%s/%s_%s.mem.log", zbutil.GetLogDir(), zbutil.GetExeBaseName(), time.Now().Format("06-01-02_15.04.05"))
 
 	f, e := os.OpenFile(l_memlogfile, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if e != nil {

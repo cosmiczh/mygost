@@ -1,12 +1,10 @@
-package main
+package zbutil
 
 import (
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"github.com/ginuerzh/gost"
 )
 
 func GetExeName() string {
@@ -28,7 +26,7 @@ func GetExeBaseName() string {
 	return l_basename
 }
 
-func GetExePath() string { return gost.GetExeDir() + "/" + GetExeName() }
+func GetExePath() string { return GetExeDir() + "/" + GetExeName() }
 
 func SearchFile(plist_file *[]os.FileInfo, dirname string, name_pattern string) ([]os.FileInfo, error) {
 	return search_in_fs(plist_file, dirname, name_pattern, false)

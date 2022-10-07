@@ -1,6 +1,6 @@
-package main
+package zbutil
 
-func (this *MAP) deleteNode(node *tnode, confirm_isinmap bool) bool {
+func (this *RBtree) deleteNode(node *tnode, confirm_isinmap bool) bool {
 	if !confirm_isinmap && node.mostroot() != this.m_root {
 		return false
 	}
@@ -37,7 +37,7 @@ func (this *MAP) deleteNode(node *tnode, confirm_isinmap bool) bool {
 	this.deleteOne(node)
 	return true
 }
-func (this *MAP) deleteOne(node *tnode) {
+func (this *RBtree) deleteOne(node *tnode) {
 	var l_child *tnode
 	if node.m_left == nil {
 		l_child = node.m_right
@@ -103,7 +103,7 @@ func getSibling(node *tnode) *tnode {
 		return node.m_parent.m_left
 	}
 }
-func (this *MAP) deleteArrange(node *tnode) {
+func (this *RBtree) deleteArrange(node *tnode) {
 	if node.m_parent == nil {
 		node.m_color = black
 		return

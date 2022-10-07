@@ -1,4 +1,4 @@
-package main
+package zbutil
 
 func std2null() {
 	// f, e := os.OpenFile("/dev/null", os.O_RDONLY, 0)

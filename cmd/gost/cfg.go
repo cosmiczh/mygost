@@ -13,9 +13,10 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"unicode"
 
 	"github.com/ginuerzh/gost"
+	"github.com/ginuerzh/gost/zbutil"
+	"github.com/ginuerzh/gost/zbutil/loglv"
 )
 
 var (
@@ -191,7 +192,7 @@ func parseBypass(s string, inwall, chkwall, white, fakeip, ischain bool) *gost.B
 		if chkwall {
 			return gost.NewBypass(inwall, chkwall, white, fakeip, ischain)
 		}
-		gost.Stackf("[1]parseBypass(s:%s,chkwall:%v)\n", s, chkwall)
+		loglv.Inf.Stackf("[1]parseBypass(s:%s,chkwall:%v)\n", s, chkwall)
 		return nil
 	}
 	var matchers []gost.Matcher
@@ -370,7 +371,7 @@ func parseLF(s string) (L, F stringList) {
 		}
 
 		var ss []string
-		for _, s := range SplitFields(line, "\t ", false) {
+		for _, s := range zbutil.SplitFields(line, "\t ", false) {
 			if s = strings.TrimSpace(s); s != "" {
 				ss = append(ss, s)
 			}
@@ -385,9 +386,4 @@ func parseLF(s string) (L, F stringList) {
 		}
 	}
 	return
-}
-func SplitFields(s string, sepchas string, or_space bool) []string {
-	return strings.FieldsFunc(s, func(r rune) bool {
-		return or_space && unicode.IsSpace(r) || len(sepchas) > 0 && strings.IndexRune(sepchas, r) >= 0
-	})
 }

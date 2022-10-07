@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ginuerzh/gost/zbutil/loglv"
 	glob "github.com/gobwas/glob"
 )
 
@@ -206,7 +207,7 @@ func (bp *Bypass) matchInList(addr string) bool {
 // Passable reports whether the bypass includes addr.
 func (bp *Bypass) Passable(addr string) bool { //Skip Pass/Bypass
 	if bp == nil || len(addr) == 0 {
-		Stackf("[1]Passable(%s) ret:false\n", addr)
+		loglv.Inf.Stackf("[1]Passable(%s) ret:false\n", addr)
 		return false
 	}
 

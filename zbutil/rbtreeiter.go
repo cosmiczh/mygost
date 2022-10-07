@@ -1,4 +1,4 @@
-package main
+package zbutil
 
 import (
 	"bytes"
@@ -6,53 +6,53 @@ import (
 	"strings"
 )
 
-type MAPIter struct{ *tnode }
+type RBtreeIter struct{ *tnode }
 
-func (this MAPIter) Key() interface{} {
+func (this RBtreeIter) Key() interface{} {
 	return this.m_key
 }
-func (this MAPIter) Value() interface{} {
+func (this RBtreeIter) Value() interface{} {
 	return this.m_value
 }
-func (this MAPIter) SetValue(val interface{}) { //相当于c++的operator*
+func (this RBtreeIter) SetValue(val interface{}) { //相当于c++的operator*
 	this.m_value = val
 }
-func (this MAPIter) Next() MAPIter {
+func (this RBtreeIter) Next() RBtreeIter {
 	if this.tnode == nil {
 		return this
 	} else {
-		return MAPIter{tnode: this.next()}
+		return RBtreeIter{tnode: this.next()}
 	}
 }
-func (this MAPIter) Prev() MAPIter {
+func (this RBtreeIter) Prev() RBtreeIter {
 	if this.tnode == nil {
 		return this
 	} else {
-		return MAPIter{tnode: this.prev()}
+		return RBtreeIter{tnode: this.prev()}
 	}
 }
 
-func (this *MAP) Begin() MAPIter {
+func (this *RBtree) Begin() RBtreeIter {
 	if this.m_root != nil {
-		return MAPIter{tnode: this.m_root.mostleft()}
+		return RBtreeIter{tnode: this.m_root.mostleft()}
 	}
 	return this.End()
 }
-func (this *MAP) End() MAPIter {
-	return MAPIter{tnode: nil}
+func (this *RBtree) End() RBtreeIter {
+	return RBtreeIter{tnode: nil}
 }
 
 //反向遍历获取Begin迭代器
-func (this *MAP) RBegin() MAPIter {
+func (this *RBtree) RBegin() RBtreeIter {
 	if this.m_root != nil {
-		return MAPIter{tnode: this.m_root.mostright()}
+		return RBtreeIter{tnode: this.m_root.mostright()}
 	}
 	return this.REnd()
 }
-func (this *MAP) REnd() MAPIter {
-	return MAPIter{tnode: nil}
+func (this *RBtree) REnd() RBtreeIter {
+	return RBtreeIter{tnode: nil}
 }
-func (this *MAP) MidIterate(iterfunc func(it MAPIter) (isbreak bool)) (isbreak bool) {
+func (this *RBtree) MidIterate(iterfunc func(it RBtreeIter) (isbreak bool)) (isbreak bool) {
 	if iterfunc == nil {
 		return false
 	}
@@ -61,7 +61,7 @@ func (this *MAP) MidIterate(iterfunc func(it MAPIter) (isbreak bool)) (isbreak b
 		if tree == nil {
 			return false
 		}
-		if isbreak = iterfunc(MAPIter{tnode: tree}); isbreak {
+		if isbreak = iterfunc(RBtreeIter{tnode: tree}); isbreak {
 			return
 		}
 		if isbreak = lf_recurs(tree.m_left); isbreak {
@@ -71,7 +71,7 @@ func (this *MAP) MidIterate(iterfunc func(it MAPIter) (isbreak bool)) (isbreak b
 	}
 	return lf_recurs(this.m_root)
 }
-func (this *MAP) LeftIterate(iterfunc func(it MAPIter) (isbreak bool)) (isbreak bool) {
+func (this *RBtree) LeftIterate(iterfunc func(it RBtreeIter) (isbreak bool)) (isbreak bool) {
 	if iterfunc == nil {
 		return false
 	}
@@ -83,14 +83,14 @@ func (this *MAP) LeftIterate(iterfunc func(it MAPIter) (isbreak bool)) (isbreak 
 		if isbreak = lf_recurs(tree.m_left); isbreak {
 			return
 		}
-		if isbreak = iterfunc(MAPIter{tnode: tree}); isbreak {
+		if isbreak = iterfunc(RBtreeIter{tnode: tree}); isbreak {
 			return
 		}
 		return lf_recurs(tree.m_right)
 	}
 	return lf_recurs(this.m_root)
 }
-func (this *MAP) RightIterate(iterfunc func(it MAPIter) (isbreak bool)) (isbreak bool) {
+func (this *RBtree) RightIterate(iterfunc func(it RBtreeIter) (isbreak bool)) (isbreak bool) {
 	if iterfunc == nil {
 		return false
 	}
@@ -102,7 +102,7 @@ func (this *MAP) RightIterate(iterfunc func(it MAPIter) (isbreak bool)) (isbreak
 		if isbreak = lf_recurs(tree.m_right); isbreak {
 			return
 		}
-		if isbreak = iterfunc(MAPIter{tnode: tree}); isbreak {
+		if isbreak = iterfunc(RBtreeIter{tnode: tree}); isbreak {
 			return
 		}
 		return lf_recurs(tree.m_left)

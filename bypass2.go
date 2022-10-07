@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
 
+	"github.com/ginuerzh/gost/zbutil"
 	ipdb "github.com/ipipdotnet/ipdb-go"
 )
 
@@ -21,15 +21,15 @@ type IPv4sec struct {
 }
 
 var (
-	file1 = GetExeDir() + "/chn_ip.txt"
-	file2 = GetExeDir() + "/ipipfree.ipdb"
+	file1 = zbutil.GetExeDir() + "/chn_ip.txt"
+	file2 = zbutil.GetExeDir() + "/ipipfree.ipdb"
 )
 var (
 	g_lastread               = time.Now()
 	g_ipv4secs, g_ipdb, _, _ = ReadIPset(file1, file2, &g_mod1t, &g_mod2t, &g_f1size, &g_f2size)
 )
 var (
-	g_mtx              RWMutex2
+	g_mtx              zbutil.RWMutex2
 	g_mod1t, g_mod2t   time.Time
 	g_f1size, g_f2size int64
 	g_once_run         int32
@@ -70,7 +70,7 @@ func chn_wall(ip string) int8 {
 						}
 						if len(l_ipv4s) > 0 {
 							var l_ip_count int64
-							TraverseFunc(len(l_ipv4s), func(i int) int {
+							zbutil.TraverseFunc(len(l_ipv4s), func(i int) int {
 								if l_ipv4s[i].start <= l_ipv4s[i].end && l_ipv4s[i].start>>24 != 10 && l_ipv4s[i].start>>24 != 127 &&
 									l_ipv4s[i].start>>16 != 172<<8+16 && l_ipv4s[i].start>>16 != 192<<8+168 {
 
@@ -115,7 +115,7 @@ func chn_wall(ip string) int8 {
 			return 1
 		}
 	}
-	l_ip, err := SplitInt16s(ip, ".", true)
+	l_ip, err := zbutil.SplitInt16s(ip, ".", true)
 	if err != nil || len(l_ip) != IPv4len {
 		return 0
 	}
@@ -125,7 +125,7 @@ func chn_wall(ip string) int8 {
 	}
 
 	defer g_mtx.RLock()()
-	l_idx := Upperbound(len(g_ipv4secs), func(i int) bool { return g_ipv4secs[i].start > l_nip })
+	l_idx := zbutil.Upperbound(len(g_ipv4secs), func(i int) bool { return g_ipv4secs[i].start > l_nip })
 	if l_idx > 0 && l_nip <= g_ipv4secs[l_idx-1].end {
 		return 1
 	}
@@ -213,7 +213,7 @@ func ReadIPset(file1, file2 string, f1mod, f2mod *time.Time, f1size, f2size *int
 	var l_lineno int
 	for linetxt, err0 := lf_readln(); err0 == nil || err0 == io.EOF; linetxt, err0 = lf_readln() {
 		l_lineno++
-		l_ips := SplitFields(linetxt, ",;-", true)
+		l_ips := zbutil.SplitFields(linetxt, ",;-", true)
 		if len(l_ips) != 2 {
 			if err0 == io.EOF {
 				break
@@ -222,7 +222,7 @@ func ReadIPset(file1, file2 string, f1mod, f2mod *time.Time, f1size, f2size *int
 		}
 		var l_ipsec IPv4sec
 		if true { //start
-			l_ip, err := SplitInt16s(l_ips[0], ".", true)
+			l_ip, err := zbutil.SplitInt16s(l_ips[0], ".", true)
 			if err != nil || len(l_ip) != IPv4len {
 				if ret1err == nil {
 					ret1err = fmt.Errorf("第%d行格式错误", l_lineno)
@@ -237,7 +237,7 @@ func ReadIPset(file1, file2 string, f1mod, f2mod *time.Time, f1size, f2size *int
 			}
 		}
 		if true { //end
-			l_ip, err := SplitInt16s(l_ips[1], ".", true)
+			l_ip, err := zbutil.SplitInt16s(l_ips[1], ".", true)
 			if err != nil || len(l_ip) != IPv4len {
 				if ret1err == nil {
 					ret1err = fmt.Errorf("第%d行格式错误", l_lineno)
@@ -264,17 +264,17 @@ func ReadIPset(file1, file2 string, f1mod, f2mod *time.Time, f1size, f2size *int
 		// 	IPv4sec{172*(1<<24) + 16*(1<<16), 172*(1<<24) + 31*(1<<16) + 0xFFFF},   //172.16.x.x-172.31.x.x
 		// 	IPv4sec{192*(1<<24) + 168*(1<<16), 192*(1<<24) + 168*(1<<16) + 0xFFFF}, //192.168.x.x
 		// )
-		Sort(len(ret1ips),
+		zbutil.Sort(len(ret1ips),
 			func(i, j int) bool {
 				return ret1ips[i].start < ret1ips[j].start
 			}, func(i, j int) {
 				ret1ips[i], ret1ips[j] = ret1ips[j], ret1ips[i]
 			})
 		var l_deleted_idx []int
-		TraverseFunc(len(ret1ips)-1,
+		zbutil.TraverseFunc(len(ret1ips)-1,
 			func(i int) int {
 				if ret1ips[i].end+1 >= ret1ips[i+1].start {
-					idx := RevIndexFunc(i+1, func(i int) bool { return ret1ips[i].start != 0xFFFFFFFF })
+					idx := zbutil.RevIndexFunc(i+1, func(i int) bool { return ret1ips[i].start != 0xFFFFFFFF })
 					if ret1ips[idx].end < ret1ips[i+1].end {
 						ret1ips[idx].end = ret1ips[i+1].end
 					}
@@ -283,14 +283,8 @@ func ReadIPset(file1, file2 string, f1mod, f2mod *time.Time, f1size, f2size *int
 				}
 				return 0
 			})
-		l_deleted_count := DelMulti(len(ret1ips), func(i, j int) { ret1ips[i] = ret1ips[j] }, l_deleted_idx...)
+		l_deleted_count := zbutil.DelMulti(len(ret1ips), func(i, j int) { ret1ips[i] = ret1ips[j] }, l_deleted_idx...)
 		ret1ips = ret1ips[:len(ret1ips)-l_deleted_count]
 	}
 	return
-}
-func Stackf(format string, v ...interface{}) {
-	l_buf := [2048]byte{'\n'}
-	l_stack := l_buf[:runtime.Stack(l_buf[1:len(l_buf)-2], false)+2]
-	l_stack[len(l_stack)-1] = '\n'
-	fmt.Printf("\n" + fmt.Sprintf(format, v...) + string(l_stack))
 }

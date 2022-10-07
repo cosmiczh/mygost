@@ -1,8 +1,10 @@
-package main
+package zbutil
 
 import (
 	"net"
 	"strconv"
+	"strings"
+	"unicode"
 )
 
 func MaxInt(i1, i2 int) int {
@@ -474,4 +476,20 @@ func AnyToInt32(ipara interface{}) int32 {
 		l_i32val = int32(v)
 	}
 	return l_i32val
+}
+
+func SplitFields(s string, sepchas string, or_space bool) []string {
+	return strings.FieldsFunc(s, func(r rune) bool {
+		return or_space && unicode.IsSpace(r) || len(sepchas) > 0 && strings.IndexRune(sepchas, r) >= 0
+	})
+}
+func SplitInt16s(s string, sepchas string, or_space bool) (retval []int16, reterr error) {
+	l_fields := SplitFields(s, sepchas, or_space)
+	retval = make([]int16, len(l_fields))
+	for i := 0; i < len(l_fields); i++ {
+		if retval[i], reterr = Atoi16(l_fields[i]); reterr != nil {
+			return nil, reterr
+		}
+	}
+	return
 }

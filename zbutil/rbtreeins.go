@@ -1,6 +1,6 @@
-package main
+package zbutil
 
-func (this *MAP) insertNode(pnode **tnode, parent *tnode, key interface{}) (sucs bool, newnode *tnode) {
+func (this *RBtree) insertNode(pnode **tnode, parent *tnode, key interface{}) (sucs bool, newnode *tnode) {
 	if node := (*pnode); node == nil {
 		sucs, newnode = true, &tnode{m_parent: parent, m_key: key, m_color: red}
 		*pnode = newnode
@@ -18,7 +18,7 @@ func (this *MAP) insertNode(pnode **tnode, parent *tnode, key interface{}) (sucs
 		return this.insertNode(&node.m_left, node, key)
 	}
 }
-func (this *MAP) insertArrange(node *tnode) {
+func (this *RBtree) insertArrange(node *tnode) {
 	l_parent := node.m_parent
 	if l_parent == nil { //根节点
 		node.m_color = black

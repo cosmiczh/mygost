@@ -1,4 +1,4 @@
-package main
+package zbutil
 
 import (
 	"errors"
@@ -119,7 +119,7 @@ func (this *tnode) 旋转(旋转方向 bool) (*tnode, error) {
 	}
 	return nil, nil
 }
-func (this *MAP) 逆时旋(node *tnode) {
+func (this *RBtree) 逆时旋(node *tnode) {
 	if tmproot, err := node.旋转(anti_clock); err == nil {
 		if tmproot != nil {
 			this.m_root = tmproot
@@ -128,7 +128,7 @@ func (this *MAP) 逆时旋(node *tnode) {
 		fmt.Printf(err.Error())
 	}
 }
-func (this *MAP) 顺时旋(node *tnode) {
+func (this *RBtree) 顺时旋(node *tnode) {
 	if tmproot, err := node.旋转(clockwise); err == nil {
 		if tmproot != nil {
 			this.m_root = tmproot

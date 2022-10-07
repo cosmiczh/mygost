@@ -1,4 +1,4 @@
-package gost
+package zbutil
 
 import (
 	"os"
@@ -64,4 +64,7 @@ func GetExeDir() string {
 	}
 	// fmt.Printf("l_execDir6:%s\n", l_execDir)
 	return l_execDir
+}
+func GetLogDir() string {
+	return GetExeDir() + "/log"
 }

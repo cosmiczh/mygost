@@ -1,6 +1,6 @@
-package main
+package zbutil
 
-func (this *MAP) lowerbound(node *tnode, key interface{}) *tnode {
+func (this *RBtree) lowerbound(node *tnode, key interface{}) *tnode {
 	if node == nil {
 		return nil
 	} else if bigsmall := this.m_compfunc(node.m_key, key); bigsmall >= 0 {
@@ -12,7 +12,7 @@ func (this *MAP) lowerbound(node *tnode, key interface{}) *tnode {
 		return this.lowerbound(node.m_right, key)
 	}
 }
-func (this *MAP) uppperbound(node *tnode, key interface{}) *tnode {
+func (this *RBtree) uppperbound(node *tnode, key interface{}) *tnode {
 	if node == nil {
 		return nil
 	} else if bigsmall := this.m_compfunc(node.m_key, key); bigsmall > 0 {
@@ -24,7 +24,7 @@ func (this *MAP) uppperbound(node *tnode, key interface{}) *tnode {
 		return this.uppperbound(node.m_right, key)
 	}
 }
-func (this *MAP) find(node *tnode, key interface{}) *tnode {
+func (this *RBtree) find(node *tnode, key interface{}) *tnode {
 	if node == nil {
 		return nil
 	} else if bigsmall := this.m_compfunc(key, node.m_key); bigsmall == 0 {

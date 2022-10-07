@@ -1,4 +1,4 @@
-package main
+package zbutil
 
 import "sort"
 
@@ -69,11 +69,13 @@ func TraverseFind(nlen int, eque func(i int) bool) int {
 	return -1
 }
 
+//Lowerbound 遍历二分法搜索
 //返回>={搜索值}的最小索引,fmore_eq:func(i int){return {搜索值}<={val}[i]}
 func Lowerbound(nlen int, fmore_eq func(i int) bool) int {
 	return sort.Search(nlen, fmore_eq)
 }
 
+//Upperbound 遍历二分法搜索
 //返回>{搜索值}的最小索引,fmore:func(i int){return {搜索值}<{val}[i]}
 func Upperbound(neln int, fmore func(j int) bool) int {
 	return sort.Search(neln, fmore)

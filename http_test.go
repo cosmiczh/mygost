@@ -366,7 +366,7 @@ func TestHTTPProxyWithBypass(t *testing.T) {
 	server := &Server{
 		Listener: ln,
 		Handler: HTTPHandler(
-			BypassHandlerOption(NewBypassPatterns(false, false, false, false, host)),
+			BypassHandlerOption(NewBypassPatterns(false, false, false, false, false, host)),
 		),
 	}
 	go server.Run()
