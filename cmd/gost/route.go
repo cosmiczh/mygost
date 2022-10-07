@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -314,8 +315,11 @@ func parseChainNode(ns string) (nodes []gost.Node, err error) {
 		Connector:   connector,
 		Transporter: tr,
 	}
-
-	node.Bypass = parseBypass(node.Get("bypass"))
+	var chn bool
+	if v := node.Get("chn"); len(v) > 0 {
+		chn, _ = strconv.ParseBool(v)
+	}
+	node.Bypass = parseBypass(node.Get("bypass"), chn)
 
 	ips := parseIP(node.Get("ip"), sport)
 	for _, ip := range ips {
@@ -626,8 +630,12 @@ func (r *route) GenRouters() ([]router, error) {
 				return nil, err
 			}
 		}
+		var chn bool
+		if v := node.Get("chn"); len(v) > 0 {
+			chn, _ = strconv.ParseBool(v)
+		}
 
-		node.Bypass = parseBypass(node.Get("bypass"))
+		node.Bypass = parseBypass(node.Get("bypass"), chn)
 		hosts := parseHosts(node.Get("hosts"))
 		ips := parseIP(node.Get("ip"), "")
 

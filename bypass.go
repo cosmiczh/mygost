@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -124,30 +125,32 @@ type Bypass struct {
 	matchers []Matcher
 	period   time.Duration // the period for live reloading
 	reversed bool
+	chn      bool
 	stopped  chan struct{}
 	mux      sync.RWMutex
 }
 
 // NewBypass creates and initializes a new Bypass using matchers as its match rules.
 // The rules will be reversed if the reversed is true.
-func NewBypass(reversed bool, matchers ...Matcher) *Bypass {
+func NewBypass(reversed, chn bool, matchers ...Matcher) *Bypass {
 	return &Bypass{
 		matchers: matchers,
 		reversed: reversed,
+		chn:      chn,
 		stopped:  make(chan struct{}),
 	}
 }
 
 // NewBypassPatterns creates and initializes a new Bypass using matcher patterns as its match rules.
 // The rules will be reversed if the reverse is true.
-func NewBypassPatterns(reversed bool, patterns ...string) *Bypass {
+func NewBypassPatterns(reversed, chn bool, patterns ...string) *Bypass {
 	var matchers []Matcher
 	for _, pattern := range patterns {
 		if m := NewMatcher(pattern); m != nil {
 			matchers = append(matchers, m)
 		}
 	}
-	bp := NewBypass(reversed)
+	bp := NewBypass(reversed, chn)
 	bp.AddMatchers(matchers...)
 	return bp
 }
@@ -182,9 +185,37 @@ func (bp *Bypass) Contains(addr string) bool {
 			break
 		}
 	}
+	if !matched && bp.chn {
+		var ipchn1 *ipchn
+		if addr2, found := name_ip.Load(addr); found {
+			ipchn1 = addr2.(*ipchn)
+		} else if addr2, _ := net.ResolveIPAddr("ip4", addr); addr2 == nil { //无法解析的域名
+			ipchn1 =&ipchn{ip:addr2.String()}
+			name_ip.Store(addr, ipchn1)	//加上这行可以优化无法解析的域名的响应
+		} else {
+			ipchn1 =&ipchn{ip:addr2.String()}
+			name_ip.Store(addr, ipchn1)
+		}
+		log.Printf("检测[IP:%s<=DN:%s]", ipchn1.ip ,addr)
+		if ipchn1.chn != 0 {
+			matched =ipchn1.chn > 0
+		}else if matched = chnips_contains(ipchn1.ip, true); matched {
+			ipchn1.chn =1
+		} else {
+			ipchn1.chn =-1
+		}
+		if matched {
+			log.Printf("位于[中国]")
+		} else {
+			log.Printf("位于[外国]")
+		}
+	}
 	return !bp.reversed && matched ||
 		bp.reversed && !matched
 }
+
+var name_ip sync.Map
+type ipchn struct{ip string;chn int8}
 
 // AddMatchers appends matchers to the bypass matcher list.
 func (bp *Bypass) AddMatchers(matchers ...Matcher) {

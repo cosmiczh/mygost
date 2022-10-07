@@ -32,3 +32,6 @@ _testmain.go
 
 .vscode/
 cmd/gost/gost
+
+gost-linux-*
+gost-win-*

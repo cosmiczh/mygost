@@ -183,8 +183,11 @@ func parseIP(s string, port string) (ips []string) {
 	return
 }
 
-func parseBypass(s string) *gost.Bypass {
+func parseBypass(s string, chn bool) *gost.Bypass {
 	if s == "" {
+		if chn {
+			return gost.NewBypass(false, true)
+		}
 		return nil
 	}
 	var matchers []gost.Matcher
@@ -203,11 +206,11 @@ func parseBypass(s string) *gost.Bypass {
 			}
 			matchers = append(matchers, gost.NewMatcher(s))
 		}
-		return gost.NewBypass(reversed, matchers...)
+		return gost.NewBypass(reversed, chn, matchers...)
 	}
 	defer f.Close()
 
-	bp := gost.NewBypass(reversed)
+	bp := gost.NewBypass(reversed, chn)
 	bp.Reload(f)
 	go gost.PeriodReload(bp, s)
 

@@ -161,7 +161,7 @@ func TestBypassContains(t *testing.T) {
 	for i, tc := range bypassContainTests {
 		tc := tc
 		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
-			bp := NewBypassPatterns(tc.reversed, tc.patterns...)
+			bp := NewBypassPatterns(tc.reversed, false, tc.patterns...)
 			if bp.Contains(tc.addr) != tc.bypassed {
 				t.Errorf("#%d test failed: %v, %s", i, tc.patterns, tc.addr)
 			}

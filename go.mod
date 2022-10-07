@@ -14,7 +14,10 @@ require (
 	github.com/go-gost/tls-dissector v0.0.2-0.20220408131628-aac992c27451
 	github.com/go-log/log v0.2.0
 	github.com/gobwas/glob v0.2.3
+	github.com/google/gopacket v1.1.19 // indirect
 	github.com/gorilla/websocket v1.4.2
+	github.com/ipipdotnet/ipdb-go v1.3.1
+	github.com/kardianos/service v1.1.0
 	github.com/klauspost/compress v1.13.6
 	github.com/lucas-clemente/quic-go v0.28.1
 	github.com/miekg/dns v1.1.47
@@ -38,7 +41,6 @@ require (
 	github.com/dchest/siphash v1.2.2 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
-	github.com/google/gopacket v1.1.19 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/klauspost/reedsolomon v1.9.15 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
@@ -46,7 +48,7 @@ require (
 	github.com/marten-seemann/qtls-go1-18 v0.1.2 // indirect
 	github.com/marten-seemann/qtls-go1-19 v0.1.0 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
-	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/templexxx/cpu v0.0.7 // indirect
