@@ -161,8 +161,8 @@ func TestBypassContains(t *testing.T) {
 	for i, tc := range bypassContainTests {
 		tc := tc
 		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
-			bp := NewBypassPatterns(tc.inwall, false, false, false, tc.patterns...)
-			if bp.Contains(tc.addr) != tc.bypassed {
+			bp := NewBypassPatterns(tc.inwall, false, false, false, false, tc.patterns...)
+			if bp.Passable(tc.addr) == tc.bypassed {
 				t.Errorf("#%d test failed: %v, %s", i, tc.patterns, tc.addr)
 			}
 		})
@@ -285,7 +285,7 @@ func TestByapssReload(t *testing.T) {
 			t.Errorf("#%d test failed: period value should be %v, got %v",
 				i, tc.period, bp.Period())
 		}
-		if bp.Contains(tc.addr) != tc.bypassed {
+		if bp.Passable(tc.addr) == tc.bypassed {
 			t.Errorf("#%d test failed: %v, %s", i, bp.inwall, tc.addr)
 		}
 		if tc.stopped {

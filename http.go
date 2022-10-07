@@ -194,7 +194,7 @@ func (h *httpHandler) handleRequest(conn net.Conn, req *http.Request) {
 		return
 	}
 
-	if h.options.Bypass.Contains(host) {
+	if !h.options.Bypass.Passable(host) {
 		resp.StatusCode = http.StatusForbidden
 
 		log.Logf("[http] %s - %s bypass %s",

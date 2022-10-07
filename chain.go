@@ -345,7 +345,7 @@ func (c *Chain) selectRouteFor(addr string) (route *Chain, err error) {
 			continue
 		}
 
-		if node.Bypass.Contains(addr) {
+		if !node.Bypass.Passable(addr) {
 			continue //fix by andrew.zhang in 2020.9.8
 		}
 

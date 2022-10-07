@@ -203,11 +203,11 @@ func (bp *Bypass) matchInList(addr string) bool {
 	return false
 }
 
-// Contains reports whether the bypass includes addr.
-func (bp *Bypass) Contains(addr string) bool { //Skip Pass/Bypass
+// Passable reports whether the bypass includes addr.
+func (bp *Bypass) Passable(addr string) bool { //Skip Pass/Bypass
 	if bp == nil || len(addr) == 0 {
-		Stackf("[1]Contains(%s) ret:false\n", addr)
-		return true
+		Stackf("[1]Passable(%s) ret:false\n", addr)
+		return false
 	}
 
 	// try to strip the port
@@ -218,32 +218,32 @@ func (bp *Bypass) Contains(addr string) bool { //Skip Pass/Bypass
 	}
 	if !bp.ischain { //前接收端
 		if bp.matchInList(addr) { //在黑白名单中
-			return !bp.white
-		} else {
 			return bp.white
+		} else {
+			return !bp.white
 		}
 	} else if !bp.white && bp.matchInList(addr) { //在转发端的黑名单中，直接拒绝了
-		return true
-	} else if bp.fakeip && bp.white && bp.matchInList(addr) { //伪装功能打开，白名单的网站直接强制转发
 		return false
+	} else if bp.fakeip && bp.white && bp.matchInList(addr) { //伪装功能打开，白名单的网站直接强制转发
+		return true
 	} else {
 		var l_inwall int8 = -2 //不检查墙，默认为墙外<0
 		if bp.chkwall {
 			l_inwall = bp.chkInWall(addr)
 			if l_inwall == 0 { //出错，直接跳过
-				return true
+				return false
 			} else if !bp.inwall { //在墙外，标志反转
 				l_inwall = -l_inwall
 			}
 		}
 		if l_inwall > 0 { //墙这一边的地址不让过
-			return true
-		} else if !bp.white { //墙另一边的且不在黑名单，能过
 			return false
-		} else if bp.fakeip { //墙另一边不在白名单，不能过
+		} else if !bp.white { //墙另一边的且不在黑名单，能过
 			return true
+		} else if bp.fakeip { //墙另一边不在白名单，不能过
+			return false
 		} else { //墙另一边且是白名单，在白名单能过，不在白名单不让过
-			return !bp.matchInList(addr)
+			return bp.matchInList(addr)
 		}
 	}
 }
