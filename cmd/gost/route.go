@@ -327,7 +327,11 @@ func parseChainNode(ns string) (nodes []gost.Node, err error) {
 	if v := node.Get("white"); len(v) > 0 {
 		white, _ = strconv.ParseBool(v)
 	}
-	node.Bypass = parseBypass(node.Get("bypass"), inwall, chkwall, white, true)
+	var fakeip bool = true
+	if v := node.Get("fakeip"); len(v) > 0 {
+		fakeip, _ = strconv.ParseBool(v)
+	}
+	node.Bypass = parseBypass(node.Get("bypass"), inwall, chkwall, white, fakeip, true)
 
 	ips := parseIP(node.Get("ip"), sport)
 	for _, ip := range ips {
@@ -650,8 +654,12 @@ func (r *route) GenRouters() ([]router, error) {
 		if v := node.Get("white"); len(v) > 0 {
 			white, _ = strconv.ParseBool(v)
 		}
+		var fakeip bool = true
+		if v := node.Get("fakeip"); len(v) > 0 {
+			fakeip, _ = strconv.ParseBool(v)
+		}
 
-		node.Bypass = parseBypass(node.Get("bypass"), inwall, chkwall, white, false)
+		node.Bypass = parseBypass(node.Get("bypass"), inwall, chkwall, white, fakeip, false)
 		hosts := parseHosts(node.Get("hosts"))
 		ips := parseIP(node.Get("ip"), "")
 

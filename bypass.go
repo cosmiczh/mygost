@@ -126,6 +126,7 @@ type Bypass struct {
 	inwall, inwall_0   bool
 	chkwall, chkwall_0 bool
 	white, white_0     bool
+	fakeip, fakeip_0   bool
 
 	matchers []Matcher
 	period   time.Duration // the period for live reloading
@@ -135,7 +136,7 @@ type Bypass struct {
 
 // NewBypass creates and initializes a new Bypass using matchers as its match rules.
 // The rules will be inwall if the inwall is true.
-func NewBypass(inwall, chkwall, white, ischain bool, matchers ...Matcher) *Bypass {
+func NewBypass(inwall, chkwall, white, fakeip, ischain bool, matchers ...Matcher) *Bypass {
 	return &Bypass{
 		ischain:   ischain,
 		inwall:    inwall,
@@ -144,6 +145,8 @@ func NewBypass(inwall, chkwall, white, ischain bool, matchers ...Matcher) *Bypas
 		chkwall_0: chkwall,
 		white:     white,
 		white_0:   white,
+		fakeip:    fakeip,
+		fakeip_0:  fakeip,
 		matchers:  matchers,
 		stopped:   make(chan struct{}),
 	}
@@ -151,14 +154,14 @@ func NewBypass(inwall, chkwall, white, ischain bool, matchers ...Matcher) *Bypas
 
 // NewBypassPatterns creates and initializes a new Bypass using matcher patterns as its match rules.
 // The rules will be reversed if the inwall is true.
-func NewBypassPatterns(inwall, chkwall, white, ischain bool, patterns ...string) *Bypass {
+func NewBypassPatterns(inwall, chkwall, white, fakeip, ischain bool, patterns ...string) *Bypass {
 	var matchers []Matcher
 	for _, pattern := range patterns {
 		if m := NewMatcher(pattern); m != nil {
 			matchers = append(matchers, m)
 		}
 	}
-	bp := NewBypass(inwall, chkwall, white, ischain)
+	bp := NewBypass(inwall, chkwall, white, fakeip, ischain)
 	bp.AddMatchers(matchers...)
 	return bp
 }
@@ -219,8 +222,10 @@ func (bp *Bypass) Contains(addr string) bool { //Skip Pass/Bypass
 		} else {
 			return bp.white
 		}
-	} else if inlist := false; !bp.white && func() bool { inlist = bp.matchInList(addr); return inlist }() { //在转发端的黑名单中，直接拒绝了
+	} else if !bp.white && bp.matchInList(addr) { //在转发端的黑名单中，直接拒绝了
 		return true
+	} else if bp.fakeip && bp.white && bp.matchInList(addr) { //伪装功能打开，白名单的网站直接强制转发
+		return false
 	} else {
 		var l_inwall int8 = -2 //不检查墙，默认为墙外<0
 		if bp.chkwall {
@@ -233,10 +238,12 @@ func (bp *Bypass) Contains(addr string) bool { //Skip Pass/Bypass
 		}
 		if l_inwall > 0 { //墙这一边的地址不让过
 			return true
-		} else if bp.white { //墙另一边的且在白名单，才能过，否则不让过
-			return !bp.matchInList(addr)
-		} else { //墙另一边的且不在黑名单，能过
+		} else if !bp.white { //墙另一边的且不在黑名单，能过
 			return false
+		} else if bp.fakeip { //墙另一边不在白名单，不能过
+			return true
+		} else { //墙另一边且是白名单，在白名单能过，不在白名单不让过
+			return !bp.matchInList(addr)
 		}
 	}
 }
@@ -268,7 +275,8 @@ func (bp *Bypass) Matchers() []Matcher {
 func (bp *Bypass) Reload(r io.Reader) error {
 	var matchers []Matcher
 	var period time.Duration
-	var inwall, chkwall, white bool
+	inwall, chkwall, white, fakeip :=
+		true, true, true, true
 
 	if r == nil || bp.Stopped() {
 		return nil
@@ -298,6 +306,10 @@ func (bp *Bypass) Reload(r io.Reader) error {
 			if len(ss) > 1 {
 				white, _ = strconv.ParseBool(ss[1])
 			}
+		case "fakeip":
+			if len(ss) > 1 {
+				fakeip, _ = strconv.ParseBool(ss[1])
+			}
 		default:
 			matchers = append(matchers, NewMatcher(ss[0]))
 		}
@@ -315,6 +327,7 @@ func (bp *Bypass) Reload(r io.Reader) error {
 	bp.inwall = bp.inwall_0 && inwall
 	bp.chkwall = bp.chkwall_0 && chkwall
 	bp.white = bp.white_0 && white
+	bp.fakeip = bp.fakeip_0 && fakeip
 	return nil
 }
 
