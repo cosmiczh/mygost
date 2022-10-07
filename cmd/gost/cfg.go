@@ -186,19 +186,18 @@ func parseIP(s string, port string) (ips []string) {
 	return
 }
 
-func parseBypass(s string, chn bool) *gost.Bypass {
+func parseBypass(s string, inwall, chkwall, white, ischain bool) *gost.Bypass {
 	if s == "" {
-		if chn {
-			return gost.NewBypass(false, true)
+		if chkwall {
+			return gost.NewBypass(inwall, chkwall, white, ischain)
 		}
-		gost.Stackf("[1]parseBypass(s:%s,chn:%v)\n", s, chn)
+		gost.Stackf("[1]parseBypass(s:%s,chkwall:%v)\n", s, chkwall)
 		return nil
 	}
 	var matchers []gost.Matcher
-	var reversed bool
-	if strings.HasPrefix(s, "~") {
-		reversed = true
+	if strings.HasPrefix(s, "~") { //白名单反成黑名单
 		s = strings.TrimLeft(s, "~")
+		white = false
 	}
 
 	f, err := os.Open(s)
@@ -210,11 +209,11 @@ func parseBypass(s string, chn bool) *gost.Bypass {
 			}
 			matchers = append(matchers, gost.NewMatcher(s))
 		}
-		return gost.NewBypass(reversed, chn, matchers...)
+		return gost.NewBypass(inwall, chkwall, white, ischain, matchers...)
 	}
 	defer f.Close()
 
-	bp := gost.NewBypass(reversed, chn)
+	bp := gost.NewBypass(inwall, chkwall, white, ischain)
 	bp.Reload(f)
 	go gost.PeriodReload(bp, s)
 

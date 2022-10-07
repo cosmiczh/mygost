@@ -1,8 +1,11 @@
 # period for live reloading
 reload      10s
 
-# matcher reversed
- reverse     true
+# 是否处于墙内
+in_wall     true
+
+# 本表是白名单，反之黑名单
+white_list   false
 
 *.example.com
 

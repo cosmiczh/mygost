@@ -122,44 +122,89 @@ func (m *domainMatcher) String() string {
 // Bypass is a filter for address (IP or domain).
 // It contains a list of matchers.
 type Bypass struct {
+	ischain            bool
+	inwall, inwall_0   bool
+	chkwall, chkwall_0 bool
+	white, white_0     bool
+
 	matchers []Matcher
 	period   time.Duration // the period for live reloading
-	reversed bool
-	chn      bool
 	stopped  chan struct{}
 	mux      sync.RWMutex
 }
 
 // NewBypass creates and initializes a new Bypass using matchers as its match rules.
-// The rules will be reversed if the reversed is true.
-func NewBypass(reversed, chn bool, matchers ...Matcher) *Bypass {
+// The rules will be inwall if the inwall is true.
+func NewBypass(inwall, chkwall, white, ischain bool, matchers ...Matcher) *Bypass {
 	return &Bypass{
-		matchers: matchers,
-		reversed: reversed,
-		chn:      chn,
-		stopped:  make(chan struct{}),
+		ischain:   ischain,
+		inwall:    inwall,
+		inwall_0:  inwall,
+		chkwall:   chkwall,
+		chkwall_0: chkwall,
+		white:     white,
+		white_0:   white,
+		matchers:  matchers,
+		stopped:   make(chan struct{}),
 	}
 }
 
 // NewBypassPatterns creates and initializes a new Bypass using matcher patterns as its match rules.
-// The rules will be reversed if the reverse is true.
-func NewBypassPatterns(reversed, chn bool, patterns ...string) *Bypass {
+// The rules will be reversed if the inwall is true.
+func NewBypassPatterns(inwall, chkwall, white, ischain bool, patterns ...string) *Bypass {
 	var matchers []Matcher
 	for _, pattern := range patterns {
 		if m := NewMatcher(pattern); m != nil {
 			matchers = append(matchers, m)
 		}
 	}
-	bp := NewBypass(reversed, chn)
+	bp := NewBypass(inwall, chkwall, white, ischain)
 	bp.AddMatchers(matchers...)
 	return bp
 }
+func (bp *Bypass) chkInWall(addr string) int8 {
+	var l_ipchn *ipchn
+	if ipchn2, found := name_ip.Load(addr); found && l_ipchn != nil {
+		l_ipchn = ipchn2.(*ipchn)
+	} else if ip, _ := net.ResolveIPAddr("ip4", addr); ip == nil { //无法解析的域名
+		l_ipchn = &ipchn{ip: ip.String()}
+		name_ip.Store(addr, l_ipchn) //加上这行可以优化无法解析的域名的响应
+	} else {
+		l_ipchn = &ipchn{ip: ip.String()}
+		name_ip.Store(addr, l_ipchn)
+	}
+	log.Printf("检测[IP:%s<=DN:%s]\n", l_ipchn.ip, addr)
+	if l_ipchn.inwall == 0 {
+		l_ipchn.inwall = chn_wall(l_ipchn.ip)
+	}
+	if l_ipchn.inwall > 0 {
+		log.Printf("---addr:%s位于[墙内]---\n", addr)
+	} else if l_ipchn.inwall < 0 {
+		log.Printf("---addr:%s位于[墙外]---\n", addr)
+	} else {
+		log.Printf("---addr:%s位于[未知]---\n", addr)
+	}
+	return l_ipchn.inwall
+}
+func (bp *Bypass) matchInList(addr string) bool {
+	bp.mux.RLock()
+	defer bp.mux.RUnlock()
+	for _, matcher := range bp.matchers {
+		if matcher == nil {
+			continue
+		}
+		if matcher.Match(addr) {
+			return true
+		}
+	}
+	return false
+}
 
 // Contains reports whether the bypass includes addr.
-func (bp *Bypass) Contains(addr string) bool {
-	if bp == nil || addr == "" {
+func (bp *Bypass) Contains(addr string) bool { //Skip Pass/Bypass
+	if bp == nil || len(addr) == 0 {
 		Stackf("[1]Contains(%s) ret:false\n", addr)
-		return false
+		return true
 	}
 
 	// try to strip the port
@@ -168,61 +213,39 @@ func (bp *Bypass) Contains(addr string) bool {
 			addr = host
 		}
 	}
-
-	bp.mux.RLock()
-	defer bp.mux.RUnlock()
-
-	if len(bp.matchers) == 0 {
-		fmt.Printf("[2]Contains(%s) ret:false\n", addr)
-		return false
-	}
-
-	var matched bool
-	for _, matcher := range bp.matchers {
-		if matcher == nil {
-			continue
+	if !bp.ischain { //前接收端
+		if bp.matchInList(addr) { //在黑白名单中
+			return !bp.white
+		} else {
+			return bp.white
 		}
-		if matcher.Match(addr) {
-			matched = true
-			break
-		}
-	}
-	if matched || !bp.chn {
-		fmt.Printf("[3]Contains(%s,bp.chn:%v) ret:false\n", addr, bp.chn)
+	} else if inlist := false; !bp.white && func() bool { inlist = bp.matchInList(addr); return inlist }() { //在转发端的黑名单中，直接拒绝了
+		return true
 	} else {
-		var ipchn1 *ipchn
-		if addr2, found := name_ip.Load(addr); found {
-			ipchn1 = addr2.(*ipchn)
-		} else if addr2, _ := net.ResolveIPAddr("ip4", addr); addr2 == nil { //无法解析的域名
-			ipchn1 = &ipchn{ip: addr2.String()}
-			name_ip.Store(addr, ipchn1) //加上这行可以优化无法解析的域名的响应
-		} else {
-			ipchn1 = &ipchn{ip: addr2.String()}
-			name_ip.Store(addr, ipchn1)
+		var l_inwall int8 = -2 //不检查墙，默认为墙外<0
+		if bp.chkwall {
+			l_inwall = bp.chkInWall(addr)
+			if l_inwall == 0 { //出错，直接跳过
+				return true
+			} else if !bp.inwall { //在墙外，标志反转
+				l_inwall = -l_inwall
+			}
 		}
-		log.Printf("检测[IP:%s<=DN:%s]\n", ipchn1.ip, addr)
-		if ipchn1.chn != 0 {
-			matched = ipchn1.chn > 0
-		} else if matched = chnips_contains(ipchn1.ip, true); matched {
-			ipchn1.chn = 1
-		} else {
-			ipchn1.chn = -1
-		}
-		if matched {
-			log.Printf("addr:%s位于[墙内]\n", addr)
-		} else {
-			log.Printf("addr:%s位于[墙外]\n", addr)
+		if l_inwall > 0 { //墙这一边的地址不让过
+			return true
+		} else if bp.white { //墙另一边的且在白名单，才能过，否则不让过
+			return !bp.matchInList(addr)
+		} else { //墙另一边的且不在黑名单，能过
+			return false
 		}
 	}
-	return !bp.reversed && matched ||
-		bp.reversed && !matched
 }
 
 var name_ip sync.Map
 
 type ipchn struct {
-	ip  string
-	chn int8
+	ip     string
+	inwall int8
 }
 
 // AddMatchers appends matchers to the bypass matcher list.
@@ -241,19 +264,11 @@ func (bp *Bypass) Matchers() []Matcher {
 	return bp.matchers
 }
 
-// Reversed reports whether the rules of the bypass are reversed.
-func (bp *Bypass) Reversed() bool {
-	bp.mux.RLock()
-	defer bp.mux.RUnlock()
-
-	return bp.reversed
-}
-
 // Reload parses config from r, then live reloads the bypass.
 func (bp *Bypass) Reload(r io.Reader) error {
 	var matchers []Matcher
 	var period time.Duration
-	var reversed bool
+	var inwall, chkwall, white bool
 
 	if r == nil || bp.Stopped() {
 		return nil
@@ -271,9 +286,17 @@ func (bp *Bypass) Reload(r io.Reader) error {
 			if len(ss) > 1 {
 				period, _ = time.ParseDuration(ss[1])
 			}
-		case "reverse": // reverse option
+		case "inwall": // in_wall option
 			if len(ss) > 1 {
-				reversed, _ = strconv.ParseBool(ss[1])
+				inwall, _ = strconv.ParseBool(ss[1])
+			}
+		case "chkwall": // in_wall option
+			if len(ss) > 1 {
+				chkwall, _ = strconv.ParseBool(ss[1])
+			}
+		case "white":
+			if len(ss) > 1 {
+				white, _ = strconv.ParseBool(ss[1])
 			}
 		default:
 			matchers = append(matchers, NewMatcher(ss[0]))
@@ -289,8 +312,9 @@ func (bp *Bypass) Reload(r io.Reader) error {
 
 	bp.matchers = matchers
 	bp.period = period
-	bp.reversed = reversed
-
+	bp.inwall = bp.inwall_0 && inwall
+	bp.chkwall = bp.chkwall_0 && chkwall
+	bp.white = bp.white_0 && white
 	return nil
 }
 
@@ -327,7 +351,7 @@ func (bp *Bypass) Stopped() bool {
 
 func (bp *Bypass) String() string {
 	b := &bytes.Buffer{}
-	fmt.Fprintf(b, "reversed: %v\n", bp.Reversed())
+	fmt.Fprintf(b, "in_wall: %v\n", bp.inwall)
 	fmt.Fprintf(b, "reload: %v\n", bp.Period())
 	for _, m := range bp.Matchers() {
 		b.WriteString(m.String())

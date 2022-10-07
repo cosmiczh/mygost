@@ -315,11 +315,19 @@ func parseChainNode(ns string) (nodes []gost.Node, err error) {
 		Connector:   connector,
 		Transporter: tr,
 	}
-	var chn bool
-	if v := node.Get("chn"); len(v) > 0 {
-		chn, _ = strconv.ParseBool(v)
+	var inwall bool = true
+	if v := node.Get("inwall"); len(v) > 0 {
+		inwall, _ = strconv.ParseBool(v)
 	}
-	node.Bypass = parseBypass(node.Get("bypass"), chn)
+	var chkwall bool = true
+	if v := node.Get("chkwall"); len(v) > 0 {
+		chkwall, _ = strconv.ParseBool(v)
+	}
+	var white bool = true
+	if v := node.Get("white"); len(v) > 0 {
+		white, _ = strconv.ParseBool(v)
+	}
+	node.Bypass = parseBypass(node.Get("bypass"), inwall, chkwall, white, true)
 
 	ips := parseIP(node.Get("ip"), sport)
 	for _, ip := range ips {
@@ -630,12 +638,20 @@ func (r *route) GenRouters() ([]router, error) {
 				return nil, err
 			}
 		}
-		var chn bool
-		if v := node.Get("chn"); len(v) > 0 {
-			chn, _ = strconv.ParseBool(v)
+		var inwall bool = true
+		if v := node.Get("inwall"); len(v) > 0 {
+			inwall, _ = strconv.ParseBool(v)
+		}
+		var chkwall bool = true
+		if v := node.Get("chkwall"); len(v) > 0 {
+			chkwall, _ = strconv.ParseBool(v)
+		}
+		var white bool = true
+		if v := node.Get("white"); len(v) > 0 {
+			white, _ = strconv.ParseBool(v)
 		}
 
-		node.Bypass = parseBypass(node.Get("bypass"), chn)
+		node.Bypass = parseBypass(node.Get("bypass"), inwall, chkwall, white, false)
 		hosts := parseHosts(node.Get("hosts"))
 		ips := parseIP(node.Get("ip"), "")
 

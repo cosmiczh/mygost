@@ -1139,7 +1139,7 @@ func TestHTTP2ProxyWithBypass(t *testing.T) {
 	server := &Server{
 		Listener: ln,
 		Handler: HTTP2Handler(
-			BypassHandlerOption(NewBypassPatterns(false, false, host)),
+			BypassHandlerOption(NewBypassPatterns(false, false, false, false, host)),
 		),
 	}
 	go server.Run()

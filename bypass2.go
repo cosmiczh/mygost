@@ -35,7 +35,7 @@ var (
 	g_once_run         int32
 )
 
-func chnips_contains(ip string, in_chn bool) bool {
+func chn_wall(ip string) int8 {
 	l_now := time.Now()
 	if l_now.Sub(g_lastread) >= 10*time.Second && g_once_run == 0 {
 		func() {
@@ -95,34 +95,29 @@ func chnips_contains(ip string, in_chn bool) bool {
 			}
 		}()
 	}
-	if len(g_ipv4secs) < 1 { //如果没有配置，就所有都放行
+	if len(g_ipv4secs) < 1 {
 		// loglv.Dbg.Printf("IsAcceptedIP(ip:%s) 0个区段，无ip过滤功能", ip)
-		if g_ipdb == nil {
-			fmt.Printf("[1]IP:%s,ret:true\n", ip)
-			return true //两个都不生效和后面有一个生效的状况是不一样的
+		if g_ipdb == nil { //如果没有配置墙内ip判断库
+			// fmt.Printf("[1]IP:%s,ret:true\n", ip)
+			return 0 //两个都不生效和后面有一个生效的状况是不一样的
 		}
-		if ret, err := g_ipdb.Find(ip, "CN"); err != nil {
-			fmt.Printf("[2]IP:%s,ret:true\n", ip)
-			return true
-		} else if len(ret) < 1 {
-			fmt.Printf("[3]IP:%s,ret:%v\n", ip, !in_chn)
-			return !in_chn
-		} else if ret[0] != "中国" {
-			fmt.Printf("[4]IP:%s,ret:%v\n", ip, !in_chn)
-			return !in_chn
-		} else if len(ret) < 2 {
-			fmt.Printf("[5]IP:%s,ret:%v\n", ip, in_chn)
-			return in_chn
-		} else {
-			fmt.Printf("[6]IP:%s,ret[1]:%s,in_chn:%v\n", ip, ret[1], in_chn)
-			l_in_twhkmk := (ret[1] == "台湾") || (ret[1] == "香港") || (ret[1] == "澳门")
-			return (in_chn && !l_in_twhkmk) || (!in_chn && l_in_twhkmk)
+		if ret, err := g_ipdb.Find(ip, "CN"); err != nil { //出错
+			return 0
+		} else if len(ret) < 1 { //没有找到
+			return -1
+		} else if ret[0] != "中国" { //不在中国
+			return -1
+		} else if len(ret) < 2 { //在中国
+			return 1
+		} else if (ret[1] == "台湾") || (ret[1] == "香港") || (ret[1] == "澳门") { //在港澳台
+			return -1
+		} else { //在中国非港澳台
+			return 1
 		}
 	}
 	l_ip, err := SplitInt16s(ip, ".", true)
 	if err != nil || len(l_ip) != IPv4len {
-		fmt.Printf("[9]IPv4地址%s格式错误:%v\n", ip, err)
-		return false
+		return 0
 	}
 	var l_nip uint32
 	for i := 0; i < IPv4len; i++ {
@@ -132,33 +127,27 @@ func chnips_contains(ip string, in_chn bool) bool {
 	defer g_mtx.RLock()()
 	l_idx := Upperbound(len(g_ipv4secs), func(i int) bool { return g_ipv4secs[i].start > l_nip })
 	if l_idx > 0 && l_nip <= g_ipv4secs[l_idx-1].end {
-		fmt.Printf("[10]IP:%s,ret:%v\n", ip, in_chn)
-		return in_chn
+		return 1
 	}
 	// loglv.Dbg.Printf("IsAcceptedIP(ip:%s) 处于第[%d.%d.%d.%d->%d.%d.%d.%d]区段", ip,
 	// 	g_ipv4secs[l_idx-1].start>>24, g_ipv4secs[l_idx-1].start<<8>>24, g_ipv4secs[l_idx-1].start<<16>>24, g_ipv4secs[l_idx-1].start<<24>>24,
 	// 	g_ipv4secs[l_idx-1].end>>24, g_ipv4secs[l_idx-1].end<<8>>24, g_ipv4secs[l_idx-1].end<<16>>24, g_ipv4secs[l_idx-1].end<<24>>24,
 	// )
 	if g_ipdb == nil {
-		fmt.Printf("[11]IP:%s,ret:false\n", ip)
-		return false //有一个生效和前面的两个都不生效的状况是不一样的
+		return -1 //有一个生效和前面的两个都不生效的状况是不一样的
 	}
-	if ret, err := g_ipdb.Find(ip, "CN"); err != nil {
-		fmt.Printf("[12]IP:%s,ret:true\n", ip)
-		return true
-	} else if len(ret) < 1 {
-		fmt.Printf("[13]IP:%s,ret:%v\n", ip, !in_chn)
-		return !in_chn
-	} else if ret[0] != "中国" {
-		fmt.Printf("[14]IP:%s,ret:%v\n", ip, !in_chn)
-		return !in_chn
-	} else if len(ret) < 2 {
-		fmt.Printf("[15]IP:%s,ret:%v\n", ip, in_chn)
-		return in_chn
-	} else {
-		fmt.Printf("[16]IP:%s,ret[1]:%s,in_chn:%v\n", ip, ret[1], in_chn)
-		l_in_twhkmk := (ret[1] == "台湾") || (ret[1] == "香港") || (ret[1] == "澳门")
-		return (in_chn && !l_in_twhkmk) || (!in_chn && l_in_twhkmk)
+	if ret, err := g_ipdb.Find(ip, "CN"); err != nil { //出错
+		return -1
+	} else if len(ret) < 1 { //没有找到
+		return -1
+	} else if ret[0] != "中国" { //不在中国
+		return -1
+	} else if len(ret) < 2 { //在中国
+		return 1
+	} else if (ret[1] == "台湾") || (ret[1] == "香港") || (ret[1] == "澳门") { //在港澳台
+		return -1
+	} else { //在中国非港澳台
+		return 1
 	}
 }
 

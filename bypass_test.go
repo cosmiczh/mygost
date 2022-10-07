@@ -10,7 +10,7 @@ import (
 
 var bypassContainTests = []struct {
 	patterns []string
-	reversed bool
+	inwall   bool
 	addr     string
 	bypassed bool
 }{
@@ -161,7 +161,7 @@ func TestBypassContains(t *testing.T) {
 	for i, tc := range bypassContainTests {
 		tc := tc
 		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
-			bp := NewBypassPatterns(tc.reversed, false, tc.patterns...)
+			bp := NewBypassPatterns(tc.inwall, false, false, false, tc.patterns...)
 			if bp.Contains(tc.addr) != tc.bypassed {
 				t.Errorf("#%d test failed: %v, %s", i, tc.patterns, tc.addr)
 			}
@@ -172,8 +172,8 @@ func TestBypassContains(t *testing.T) {
 var bypassReloadTests = []struct {
 	r io.Reader
 
-	reversed bool
-	period   time.Duration
+	inwall bool
+	period time.Duration
 
 	addr     string
 	bypassed bool
@@ -181,7 +181,7 @@ var bypassReloadTests = []struct {
 }{
 	{
 		r:        nil,
-		reversed: false,
+		inwall:   true,
 		period:   0,
 		addr:     "192.168.1.1",
 		bypassed: false,
@@ -189,79 +189,79 @@ var bypassReloadTests = []struct {
 	},
 	{
 		r:        bytes.NewBufferString(""),
-		reversed: false,
+		inwall:   true,
 		period:   0,
 		addr:     "192.168.1.1",
 		bypassed: false,
 		stopped:  false,
 	},
 	{
-		r:        bytes.NewBufferString("reverse true\nreload 10s"),
-		reversed: true,
+		r:        bytes.NewBufferString("inwall true\nreload 10s"),
+		inwall:   false,
 		period:   10 * time.Second,
 		addr:     "192.168.1.1",
 		bypassed: false,
 		stopped:  false,
 	},
 	{
-		r:        bytes.NewBufferString("reverse false\nreload 10s\n192.168.1.1"),
-		reversed: false,
+		r:        bytes.NewBufferString("inwall false\nreload 10s\n192.168.1.1"),
+		inwall:   true,
 		period:   10 * time.Second,
 		addr:     "192.168.1.1",
 		bypassed: true,
 		stopped:  false,
 	},
 	{
-		r:        bytes.NewBufferString("#reverse true\n#reload 10s\n192.168.0.0/16"),
-		reversed: false,
+		r:        bytes.NewBufferString("#inwall true\n#reload 10s\n192.168.0.0/16"),
+		inwall:   true,
 		period:   0,
 		addr:     "192.168.10.2",
 		bypassed: true,
 		stopped:  true,
 	},
 	{
-		r:        bytes.NewBufferString("#reverse true\n#reload 10s\n192.168.1.0/24 #comment"),
-		reversed: false,
+		r:        bytes.NewBufferString("#inwall true\n#reload 10s\n192.168.1.0/24 #comment"),
+		inwall:   true,
 		period:   0,
 		addr:     "192.168.10.2",
 		bypassed: false,
 		stopped:  true,
 	},
 	{
-		r:        bytes.NewBufferString("reverse false\nreload 10s\n192.168.1.1\n#example.com"),
-		reversed: false,
+		r:        bytes.NewBufferString("inwall false\nreload 10s\n192.168.1.1\n#example.com"),
+		inwall:   true,
 		period:   10 * time.Second,
 		addr:     "example.com",
 		bypassed: false,
 		stopped:  false,
 	},
 	{
-		r:        bytes.NewBufferString("#reverse true\n#reload 10s\n192.168.1.1\n#example.com"),
-		reversed: false,
+		r:        bytes.NewBufferString("#inwall true\n#reload 10s\n192.168.1.1\n#example.com"),
+		inwall:   true,
 		period:   0,
 		addr:     "192.168.1.1",
 		bypassed: true,
 		stopped:  true,
 	},
 	{
-		r:        bytes.NewBufferString("#reverse true\n#reload 10s\nexample.com #comment"),
-		reversed: false,
+		r:        bytes.NewBufferString("#inwall true\n#reload 10s\nexample.com #comment"),
+		inwall:   true,
 		period:   0,
 		addr:     "example.com",
 		bypassed: true,
 		stopped:  true,
 	},
 	{
-		r:        bytes.NewBufferString("#reverse true\n#reload 10s\n.example.com"),
-		reversed: false,
+		r:        bytes.NewBufferString("#inwall true\n#reload 10s\n.example.com"),
+		inwall:   true,
 		period:   0,
 		addr:     "example.com",
 		bypassed: true,
 		stopped:  true,
 	},
 	{
-		r:        bytes.NewBufferString("#reverse true\n#reload 10s\n*.example.com"),
-		reversed: false,
+		r:        bytes.NewBufferString("#inwall true\n#reload 10s\n*.example.com"),
+		inwall:   true,
 		period:   0,
 		addr:     "example.com",
 		bypassed: false,
@@ -271,22 +271,22 @@ var bypassReloadTests = []struct {
 
 func TestByapssReload(t *testing.T) {
 	for i, tc := range bypassReloadTests {
-		bp := NewBypass(false)
+		bp := NewBypass(true, true, false, false)
 		if err := bp.Reload(tc.r); err != nil {
 			t.Error(err)
 		}
 		t.Log(bp.String())
 
-		if bp.Reversed() != tc.reversed {
+		if bp.inwall != tc.inwall {
 			t.Errorf("#%d test failed: reversed value should be %v, got %v",
-				i, tc.reversed, bp.reversed)
+				i, tc.inwall, bp.inwall)
 		}
 		if bp.Period() != tc.period {
 			t.Errorf("#%d test failed: period value should be %v, got %v",
 				i, tc.period, bp.Period())
 		}
 		if bp.Contains(tc.addr) != tc.bypassed {
-			t.Errorf("#%d test failed: %v, %s", i, bp.reversed, tc.addr)
+			t.Errorf("#%d test failed: %v, %s", i, bp.inwall, tc.addr)
 		}
 		if tc.stopped {
 			bp.Stop()
