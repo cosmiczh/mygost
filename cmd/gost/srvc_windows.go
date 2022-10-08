@@ -73,7 +73,7 @@ func create_svc() service.Service {
 				return "gost_" + svcname + " proxy"
 			}
 		}(),
-		Description: "https://docs.ginuerzh.xyz/gost/;\nhttps://gitee.com/cosmicsky/gost2\n", //服务描述
+		Description: "https://docs.ginuerzh.xyz/gost/;\nhttps://github.com/cosmiczh/mygost\n", //服务描述
 		Arguments: func() []string {
 			if len(svcname) < 1 {
 				return append([]string{"-runsvc"}, os.Args[1:]...)
