@@ -82,7 +82,7 @@ func (h *Hosts) Lookup(host string) (ip net.IP) {
 }
 
 // Reload parses config from r, then live reloads the hosts.
-func (h *Hosts) Reload(r io.Reader) error {
+func (h *Hosts) Reload(r io.Reader, Period bool) error {
 	var period time.Duration
 	var hosts []Host
 

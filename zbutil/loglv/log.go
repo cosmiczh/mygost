@@ -50,21 +50,7 @@ type Logger struct {
 	flag int        // properties
 	out  io.Writer  // destination for output
 	buf  []byte     // for accumulating text to write
-}
-
-// New creates a new Logger. The out variable sets the
-// destination to which log data will be written.
-// The prefix appears at the beginning of each generated log line.
-// The flag argument defines the logging properties.
-func New(out io.Writer, flag int) *Logger {
-	return &Logger{out: out, flag: flag}
-}
-
-// SetOutput sets the output destination for the logger.
-func (l *Logger) SetOutput(w io.Writer) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.out = w
+	name string     // logfile's fullpath
 }
 
 // Cheap integer to fixed-width decimal ASCII.  Give a negative width to avoid zero-padding.
@@ -166,70 +152,106 @@ func (l *Logger) Output(prefix string, calldepth int, s string) error {
 	_, err := l.out.Write(l.buf)
 	return err
 }
+func (l *Logger) Name() string { return l.name }
 
-// Printf calls l.Output to print to the logger.
-// Arguments are handled in the manner of fmt.Printf.
-func (l *Logger) Printf(prefix string, format string, v ...interface{}) {
-	l.Output(prefix, 2, fmt.Sprintf(format, v...))
+// New creates a new Logger. The out variable sets the
+// destination to which log data will be written.
+// The prefix appears at the beginning of each generated log line.
+// The flag argument defines the logging properties.
+func New(out io.Writer, flag int) *Logger {
+	lName := ""
+	if fout, ok := out.(*os.File); ok {
+		if fout != nil && fout != os.Stderr && fout != os.Stdout {
+			lName = fout.Name()
+		}
+	}
+	return &Logger{out: out, flag: flag, name: lName}
 }
 
-// Print calls l.Output to print to the logger.
-// Arguments are handled in the manner of fmt.Print.
-func (l *Logger) Print(prefix string, v ...interface{}) { l.Output(prefix, 2, fmt.Sprint(v...)) }
+// SetOutput sets the output destination for the logger.
+func (l *Logger) SetOutput(bakName, newName string, w io.Writer) (err error) {
 
-// Println calls l.Output to print to the logger.
-// Arguments are handled in the manner of fmt.Println.
-func (l *Logger) Println(prefix string, v ...interface{}) { l.Output(prefix, 2, fmt.Sprintln(v...)) }
+	lName, newfile := l.Name(), (*os.File)(nil)
 
-// Fatal is equivalent to l.Print() followed by a call to os.Exit(1).
-func (l *Logger) Fatal(v ...interface{}) {
-	l.Output(Fta.m_prefix, 2, fmt.Sprint(v...))
-	os.Exit(1)
-}
+	if lName != newName && newName != "" {
+		newfile, err = os.OpenFile(newName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
+		if err != nil {
+			return
+		}
+	}
 
-// Fatalf is equivalent to l.Printf() followed by a call to os.Exit(1).
-func (l *Logger) Fatalf(format string, v ...interface{}) {
-	l.Output(Fta.m_prefix, 2, fmt.Sprintf(format, v...))
-	os.Exit(1)
-}
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-// Fatalln is equivalent to l.Println() followed by a call to os.Exit(1).
-func (l *Logger) Fatalln(v ...interface{}) {
-	l.Output(Fta.m_prefix, 2, fmt.Sprintln(v...))
-	os.Exit(1)
-}
-
-// Panic is equivalent to l.Print() followed by a call to panic().
-func (l *Logger) Panic(v ...interface{}) {
-	s := fmt.Sprint(v...)
-	l.Output(Fta.m_prefix, 2, s)
-	panic(s)
-}
-
-// Panicf is equivalent to l.Printf() followed by a call to panic().
-func (l *Logger) Panicf(format string, v ...interface{}) {
-	s := fmt.Sprintf(format, v...)
-	l.Output(Fta.m_prefix, 2, s)
-	panic(s)
-}
-
-// Panicln is equivalent to l.Println() followed by a call to panic().
-func (l *Logger) Panicln(v ...interface{}) {
-	s := fmt.Sprintln(v...)
-	l.Output(Fta.m_prefix, 2, s)
-	panic(s)
+	if lName != "" {
+		//关闭现有日志文件
+		if f, ok := l.out.(*os.File); ok {
+			if err = f.Sync(); err != nil {
+				if newfile != nil {
+					newfile.Close()
+				}
+				return
+			} else if err = f.Close(); err != nil {
+				if newfile != nil {
+					newfile.Close()
+				}
+				return
+			}
+		}
+		//更名现有日志文件
+		if bakName == "" && lName == newName { //没有传递备份名但新老名字有同名冲突，产生一个日期备份名字
+			os.Mkdir(GetLogDir(), 0755)
+			bakName = GetLogDir() + "/" + time.Now().Format("06-01-02_15.04.05_") + GetExeBaseName() + ".log"
+		}
+		if bakName != "" {
+			os.Rename(lName, bakName)
+		}
+	}
+	if newfile == nil && newName != "" {
+		newfile, err = os.OpenFile(newName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
+		if err != nil {
+			l.out = os.Stderr
+			l.name = ""
+			return
+		}
+	}
+	if newfile != nil {
+		l.out = newfile
+		l.name = newName
+	} else {
+		l.out = w
+		l.name = ""
+		if fout, ok := w.(*os.File); ok {
+			if fout != nil && fout != os.Stderr && fout != os.Stdout {
+				l.name = fout.Name()
+			}
+		}
+	}
+	return
 }
 
 var std = New(os.Stderr, LstdFlags)
 
 // SetOutput sets the output destination for the standard logger.
-func SetOutput(w io.Writer) {
-	std.mu.Lock()
-	defer std.mu.Unlock()
-	std.out = w
+func SetOutput(bakName, newName string, w io.Writer) error {
+	return std.SetOutput(bakName, newName, w)
 }
 
 // These functions write to the standard logger.
+
+// Printf calls std.Output to print to the logger.
+// Arguments are handled in the manner of fmt.Printf.
+func Printf(l levlLOG, format string, v ...interface{}) {
+	std.Output(l.m_prefix, 2, fmt.Sprintf(format, v...))
+}
+
+// Print calls std.Output to print to the logger.
+// Arguments are handled in the manner of fmt.Print.
+func Print(l levlLOG, v ...interface{}) { std.Output(l.m_prefix, 2, fmt.Sprint(v...)) }
+
+// Println calls std.Output to print to the logger.
+// Arguments are handled in the manner of fmt.Println.
+func Println(l levlLOG, v ...interface{}) { std.Output(l.m_prefix, 2, fmt.Sprintln(v...)) }
 
 // Fatal is equivalent to Print() followed by a call to os.Exit(1).
 func Fatal(v ...interface{}) {

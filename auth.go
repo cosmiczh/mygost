@@ -57,7 +57,7 @@ func (au *LocalAuthenticator) Add(k, v string) {
 }
 
 // Reload parses config from r, then live reloads the Authenticator.
-func (au *LocalAuthenticator) Reload(r io.Reader) error {
+func (au *LocalAuthenticator) Reload(r io.Reader, Period bool) error {
 	var period time.Duration
 	kvs := make(map[string]string)
 

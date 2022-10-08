@@ -3,6 +3,8 @@ package zbutil
 import (
 	"os"
 	"sync/atomic"
+
+	"github.com/ginuerzh/gost/zbutil/loglv"
 )
 
 var g_cmdln_map RBtreeIstr
@@ -31,4 +33,9 @@ func CmdParmLike(leftpart string) string {
 		}
 	}
 	return ""
+}
+
+func init() {
+	loglv.GetLogDir, loglv.GetExeBaseName = GetLogDir, GetExeBaseName
+	loglv.CmdParmLike, loglv.SearchFile = CmdParmLike, SearchFile
 }

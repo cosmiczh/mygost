@@ -272,7 +272,7 @@ var bypassReloadTests = []struct {
 func TestByapssReload(t *testing.T) {
 	for i, tc := range bypassReloadTests {
 		bp := NewBypass(true, true, false, false, false)
-		if err := bp.Reload(tc.r); err != nil {
+		if err := bp.Reload(tc.r, false); err != nil {
 			t.Error(err)
 		}
 		t.Log(bp.String())

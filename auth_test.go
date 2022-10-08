@@ -164,7 +164,7 @@ func TestLocalAuthenticatorReload(t *testing.T) {
 		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
 			au := NewLocalAuthenticator(nil)
 
-			if err := au.Reload(tc.r); err != nil {
+			if err := au.Reload(tc.r, false); err != nil {
 				t.Error(err)
 			}
 			if au.Period() != tc.period {

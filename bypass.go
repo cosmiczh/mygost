@@ -190,13 +190,6 @@ func (bp *Bypass) chkInWall(addr string) int8 {
 	if l_ipchn.inwall == 0 {
 		l_ipchn.inwall = chn_wall(l_ipchn.ip)
 	}
-	if l_ipchn.inwall > 0 {
-		log.Printf("---addr:%s位于[墙内]---\n", addr)
-	} else if l_ipchn.inwall < 0 {
-		log.Printf("---addr:%s位于[墙外]---\n", addr)
-	} else {
-		log.Printf("---addr:%s位于[未知]---\n", addr)
-	}
 	return l_ipchn.inwall
 }
 func (bp *Bypass) matchInList(addr string) bool {
@@ -302,7 +295,7 @@ func (bp *Bypass) Matchers() []Matcher {
 }
 
 // Reload parses config from r, then live reloads the bypass.
-func (bp *Bypass) Reload(r io.Reader) error {
+func (bp *Bypass) Reload(r io.Reader, Period bool) error {
 	var matchers []Matcher
 	var period time.Duration
 	inwall, chkwall, white, fakeip :=
@@ -348,8 +341,12 @@ func (bp *Bypass) Reload(r io.Reader) error {
 	if err := scanner.Err(); err != nil {
 		return err
 	}
-	chkonce.Clear()
-	loglv.Inf.Println("-----------[reload list ,clear chkonce]-----------")
+	if Period {
+		chkonce.Clear()
+		if err := loglv.SetOutput("", zbutil.GetLogDir()+"/"+zbutil.GetExeBaseName()+".log", nil); err != nil {
+			log.Printf("----------err:%v-----------------------", err)
+		}
+	}
 
 	bp.mux.Lock()
 	defer bp.mux.Unlock()

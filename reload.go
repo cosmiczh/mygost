@@ -10,7 +10,7 @@ import (
 
 // Reloader is the interface for objects that support live reloading.
 type Reloader interface {
-	Reload(r io.Reader) error
+	Reload(r io.Reader, Period bool) error
 	Period() time.Duration
 }
 
@@ -45,7 +45,7 @@ func PeriodReload(r Reloader, configFile string) error {
 
 		if !lastMod.IsZero() && !mt.Equal(lastMod) {
 			log.Log("[reload]", configFile)
-			if err := r.Reload(f); err != nil {
+			if err := r.Reload(f, true); err != nil {
 				log.Logf("[reload] %s: %s", configFile, err)
 			}
 		}

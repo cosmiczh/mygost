@@ -1,4 +1,4 @@
-package zbutil
+package loglv
 
 func std2null() {
 	// f, e := os.OpenFile("/dev/null", os.O_RDONLY, 0)

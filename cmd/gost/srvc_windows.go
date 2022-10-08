@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/ginuerzh/gost"
-	"github.com/ginuerzh/gost/zbutil"
+	"github.com/ginuerzh/gost/zbutil/loglv"
 	"github.com/go-log/log"
 	"github.com/kardianos/service"
 )
@@ -39,17 +39,17 @@ func start() error {
 	return nil
 }
 
-type program struct{}
+type winsvc struct{}
 
-func (p *program) Start(s service.Service) error {
-	zbutil.InitLog(true)
+func (p *winsvc) Start(s service.Service) error {
+	loglv.InitLOG(true)
 	err := start()
 	if err != nil {
 		log.Log(err)
 	}
 	return err
 }
-func (p *program) Stop(s service.Service) error {
+func (p *winsvc) Stop(s service.Service) error {
 	for i := range g_routers {
 		g_routers[i].Close()
 	}
@@ -73,7 +73,7 @@ func create_svc() service.Service {
 				return "gost_" + svcname + " proxy"
 			}
 		}(),
-		Description: "https://docs.ginuerzh.xyz/gost/", //服务描述
+		Description: "https://docs.ginuerzh.xyz/gost/;\nhttps://gitee.com/cosmicsky/gost2\n", //服务描述
 		Arguments: func() []string {
 			if len(svcname) < 1 {
 				return append([]string{"-runsvc"}, os.Args[1:]...)
@@ -113,7 +113,7 @@ func create_svc() service.Service {
 			}
 		}
 	}
-	prg := &program{}
+	prg := &winsvc{}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
 		log.Log(err)

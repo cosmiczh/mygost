@@ -12,6 +12,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/ginuerzh/gost"
+	"github.com/ginuerzh/gost/zbutil"
 	"github.com/go-log/log"
 )
 
@@ -71,7 +72,7 @@ func init() {
 	}
 }
 func main() {
-	defer MainStartup("/tmp")()
+	defer zbutil.MainStartup("/tmp")()
 	if pprofEnabled {
 		go func() {
 			log.Log("profiling server on", pprofAddr)
@@ -102,7 +103,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	MainWait(nil)
+	zbutil.MainWait(nil)
 	// select {}
 }
 

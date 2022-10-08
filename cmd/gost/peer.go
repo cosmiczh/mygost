@@ -33,7 +33,7 @@ func newPeerConfig() *peerConfig {
 func (cfg *peerConfig) Validate() {
 }
 
-func (cfg *peerConfig) Reload(r io.Reader) error {
+func (cfg *peerConfig) Reload(r io.Reader, Period bool) error {
 	if cfg.Stopped() {
 		return nil
 	}

@@ -216,7 +216,7 @@ func TestResolverReload(t *testing.T) {
 	for i, tc := range resolverReloadTests {
 		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
 			r := newResolver(0)
-			if err := r.Reload(tc.r); err != nil {
+			if err := r.Reload(tc.r, false); err != nil {
 				t.Error(err)
 			}
 			t.Log(r.String())

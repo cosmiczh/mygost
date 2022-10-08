@@ -1,4 +1,4 @@
-package zbutil
+package loglv
 
 import (
 	"os"

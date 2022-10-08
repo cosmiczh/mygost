@@ -141,7 +141,7 @@ func parseAuthenticator(s string) (gost.Authenticator, error) {
 	defer f.Close()
 
 	au := gost.NewLocalAuthenticator(nil)
-	au.Reload(f)
+	au.Reload(f, false)
 
 	go gost.PeriodReload(au, s)
 
@@ -215,7 +215,7 @@ func parseBypass(s string, inwall, chkwall, white, fakeip, ischain bool) *gost.B
 	defer f.Close()
 
 	bp := gost.NewBypass(inwall, chkwall, white, fakeip, ischain)
-	bp.Reload(f)
+	bp.Reload(f, false)
 	go gost.PeriodReload(bp, s)
 
 	return bp
@@ -271,7 +271,7 @@ func parseResolver(cfg string) gost.Resolver {
 	defer f.Close()
 
 	resolver := gost.NewResolver(0)
-	resolver.Reload(f)
+	resolver.Reload(f, false)
 
 	go gost.PeriodReload(resolver, cfg)
 
@@ -286,7 +286,7 @@ func parseHosts(s string) *gost.Hosts {
 	defer f.Close()
 
 	hosts := gost.NewHosts()
-	hosts.Reload(f)
+	hosts.Reload(f, false)
 
 	go gost.PeriodReload(hosts, s)
 

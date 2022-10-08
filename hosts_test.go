@@ -105,7 +105,7 @@ var HostsReloadTests = []struct {
 func TestHostsReload(t *testing.T) {
 	for i, tc := range HostsReloadTests {
 		hosts := NewHosts()
-		if err := hosts.Reload(tc.r); err != nil {
+		if err := hosts.Reload(tc.r, false); err != nil {
 			t.Error(err)
 		}
 		if hosts.Period() != tc.period {

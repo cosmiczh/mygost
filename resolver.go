@@ -446,7 +446,7 @@ func (r *resolver) TTL() time.Duration {
 	return r.ttl
 }
 
-func (r *resolver) Reload(rd io.Reader) error {
+func (r *resolver) Reload(rd io.Reader, Period bool) error {
 	var ttl, timeout, period time.Duration
 	var domain, prefer string
 	var srcIP net.IP

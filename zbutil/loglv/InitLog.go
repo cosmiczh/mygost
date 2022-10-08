@@ -1,13 +1,17 @@
-package zbutil
+package loglv
 
 import (
+	"log"
 	"os"
 	"time"
-
-	"github.com/ginuerzh/gost/zbutil/loglv"
 )
 
-func InitLog(isdaemon bool) {
+var GetLogDir func() string
+var GetExeBaseName func() string
+var CmdParmLike func(leftpart string) string
+var SearchFile func(plist_file *[]os.FileInfo, dirname string, name_pattern string) ([]os.FileInfo, error)
+
+func InitLOG(isdaemon bool) {
 	l_logfile := ""
 	if l_logfile = CmdParmLike("-log="); len(l_logfile) > 0 {
 		l_logfile = l_logfile[len("-log="):]
@@ -27,11 +31,9 @@ func InitLog(isdaemon bool) {
 			os.Rename(l_logfile, l_bakfile)
 		}
 	}
-	f, e := os.OpenFile(l_logfile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
-	if e == nil {
-		loglv.SetOutput(f)
-		if isdaemon {
-			std2null()
-		}
+	if err := SetOutput("", l_logfile, nil); err == nil && isdaemon {
+		std2null()
+	} else {
+		log.Printf("----------daemon:%v,err:%v-----------------------", isdaemon, err)
 	}
 }

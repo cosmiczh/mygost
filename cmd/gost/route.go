@@ -80,7 +80,7 @@ func (r *route) parseChain() (*gost.Chain, error) {
 			peerCfg := newPeerConfig()
 			peerCfg.group = ngroup
 			peerCfg.baseNodes = nodes
-			peerCfg.Reload(f)
+			peerCfg.Reload(f, false)
 			f.Close()
 
 			go gost.PeriodReload(peerCfg, cfg)
