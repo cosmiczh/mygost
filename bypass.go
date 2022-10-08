@@ -341,7 +341,7 @@ func (bp *Bypass) Reload(r io.Reader, Period bool) error {
 	if err := scanner.Err(); err != nil {
 		return err
 	}
-	if Period {
+	if Period && bp.ischain {
 		chkonce.Clear()
 		if err := loglv.SetOutput("", zbutil.GetLogDir()+"/"+zbutil.GetExeBaseName()+".log", nil); err != nil {
 			log.Printf("----------err:%v-----------------------", err)
