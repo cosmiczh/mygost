@@ -31,7 +31,7 @@ _testmain.go
 *.bak
 
 .vscode/
-cmd/gost/gost
+gostbuild/*
 
 gost-linux-*
 gost-win-*

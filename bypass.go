@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -299,47 +300,81 @@ func (bp *Bypass) Reload(r io.Reader, Period bool) error {
 	var matchers []Matcher
 	var period time.Duration
 	inwall, chkwall, white, fakeip :=
-		true, true, true, true
+		0, 0, 0, 0
 
 	if r == nil || bp.Stopped() {
 		return nil
 	}
 
-	scanner := bufio.NewScanner(r)
+	scanner, num := bufio.NewScanner(r), 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		ss := splitLine(line)
 		if len(ss) == 0 {
 			continue
 		}
-		switch ss[0] {
+		boolv := false
+		var err error
+		switch num++; ss[0] {
 		case "reload": // reload option
 			if len(ss) > 1 {
-				period, _ = time.ParseDuration(ss[1])
+				period, err = time.ParseDuration(ss[1])
 			}
 		case "inwall": // in_wall option
 			if len(ss) > 1 {
-				inwall, _ = strconv.ParseBool(ss[1])
+				boolv, err = strconv.ParseBool(ss[1])
+				if err != nil {
+				} else if boolv {
+					inwall = 1
+				} else {
+					inwall = -1
+				}
 			}
 		case "chkwall": // in_wall option
 			if len(ss) > 1 {
-				chkwall, _ = strconv.ParseBool(ss[1])
+				boolv, err = strconv.ParseBool(ss[1])
+				if err != nil {
+				} else if boolv {
+					chkwall = 1
+				} else {
+					chkwall = -1
+				}
 			}
 		case "white":
 			if len(ss) > 1 {
-				white, _ = strconv.ParseBool(ss[1])
+				boolv, err = strconv.ParseBool(ss[1])
+				if err != nil {
+				} else if boolv {
+					white = 1
+				} else {
+					white = -1
+				}
 			}
 		case "fakeip":
 			if len(ss) > 1 {
-				fakeip, _ = strconv.ParseBool(ss[1])
+				boolv, err = strconv.ParseBool(ss[1])
+				if err != nil {
+				} else if boolv {
+					fakeip = 1
+				} else {
+					fakeip = -1
+				}
 			}
 		default:
 			matchers = append(matchers, NewMatcher(ss[0]))
 		}
+		if err != nil {
+			loglv.Err.Printf("switch[%s =%s] 's parsebool() failure:%v;file:%s", ss[0], ss[1], err, r.(*os.File).Name())
+			return err
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
+		loglv.Err.Printf("PeriodRload(%s) error:%v", err)
 		return err
+	} else if num <= 0 {
+		err := fmt.Errorf("PeriodRload(%s) is empty[line num:%d]", r.(*os.File).Name(), num)
+		loglv.War.Printf(err.Error())
 	}
 	if Period && bp.ischain {
 		chkonce.Clear()
@@ -353,10 +388,26 @@ func (bp *Bypass) Reload(r io.Reader, Period bool) error {
 
 	bp.matchers = matchers
 	bp.period = period
-	bp.inwall = bp.inwall_0 && inwall
-	bp.chkwall = bp.chkwall_0 && chkwall
-	bp.white = bp.white_0 && white
-	bp.fakeip = bp.fakeip_0 && fakeip
+	if inwall == 0 {
+		bp.inwall = bp.inwall_0
+	} else {
+		bp.inwall = inwall > 0
+	}
+	if chkwall == 0 {
+		bp.chkwall = bp.chkwall_0
+	} else {
+		bp.chkwall = chkwall > 0
+	}
+	if white == 0 {
+		bp.white = bp.white_0
+	} else {
+		bp.white = white > 0
+	}
+	if fakeip == 0 {
+		bp.fakeip = bp.fakeip_0
+	} else {
+		bp.fakeip = fakeip > 0
+	}
 	return nil
 }
 

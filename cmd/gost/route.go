@@ -327,7 +327,7 @@ func parseChainNode(ns string) (nodes []gost.Node, err error) {
 	if v := node.Get("white"); len(v) > 0 {
 		white, _ = strconv.ParseBool(v)
 	}
-	var fakeip bool = true
+	var fakeip bool = false
 	if v := node.Get("fakeip"); len(v) > 0 {
 		fakeip, _ = strconv.ParseBool(v)
 	}
@@ -654,7 +654,7 @@ func (r *route) GenRouters() ([]router, error) {
 		if v := node.Get("white"); len(v) > 0 {
 			white, _ = strconv.ParseBool(v)
 		}
-		var fakeip bool = true
+		var fakeip bool = false
 		if v := node.Get("fakeip"); len(v) > 0 {
 			fakeip, _ = strconv.ParseBool(v)
 		}
