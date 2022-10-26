@@ -96,14 +96,18 @@ type domainMatcher struct {
 // the pattern can be a plain domain such as 'example.com',
 // a wildcard such as '*.exmaple.com' or a special wildcard '.example.com'.
 func DomainMatcher(pattern string) Matcher {
-	p := pattern
-	if strings.HasPrefix(pattern, ".") {
-		p = pattern[1:] // trim the prefix '.'
-		pattern = "*" + p
+	g := pattern
+	if strings.HasPrefix(pattern, "*.") { // trim the prefix “*.”
+		pattern = pattern[2:]
+	} else if strings.HasPrefix(pattern, "*") { // trim the prefix '*'
+		pattern = pattern[1:]
+	} else if strings.HasPrefix(pattern, ".") { // trim the prefix '.'
+		pattern = pattern[1:]
+		g = "*" + pattern
 	}
 	return &domainMatcher{
-		pattern: p,
-		glob:    glob.MustCompile(pattern),
+		pattern: pattern,
+		glob:    glob.MustCompile(g),
 	}
 }
 

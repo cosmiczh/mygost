@@ -197,6 +197,9 @@ func splitLine(line string) []string {
 	if n := strings.IndexByte(line, '#'); n >= 0 {
 		line = line[:n]
 	}
+	if n := strings.Index(line, "//"); n >= 0 {
+		line = line[:n]
+	}
 	line = strings.Replace(line, "\t", " ", -1)
 	line = strings.TrimSpace(line)
 
