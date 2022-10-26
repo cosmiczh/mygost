@@ -187,23 +187,28 @@ func parseIP(s string, port string) (ips []string) {
 	return
 }
 
-func parseBypass(s string, inwall, chkwall, white, fakeip, ischain bool) *gost.Bypass {
-	if s == "" {
+func parseBypass(byps_v string, inwall, chkwall, white, fakeip, ischain bool) *gost.Bypass {
+	if byps_v == "" {
 		if chkwall {
 			return gost.NewBypass(inwall, chkwall, white, fakeip, ischain)
 		}
-		loglv.Inf.Stackf("[1]parseBypass(s:%s,chkwall:%v)\n", s, chkwall)
+		loglv.Inf.Stackf("[1]parseBypass(s:%s,chkwall:%v)\n", byps_v, chkwall)
 		return nil
 	}
 	var matchers []gost.Matcher
-	if strings.HasPrefix(s, "~") { //白名单反成黑名单
-		s = strings.TrimLeft(s, "~")
+	if strings.HasPrefix(byps_v, "~") { //白名单反成黑名单
+		byps_v = strings.TrimLeft(byps_v, "~")
 		white = false
 	}
 
-	f, err := os.Open(s)
+	fname := byps_v
+	if strings.IndexAny(fname, "/\\") < 0 {
+		fname = zbutil.GetExeDir() + "/" + fname
+	}
+
+	f, err := os.Open(fname)
 	if err != nil {
-		for _, s := range strings.Split(s, ",") {
+		for _, s := range strings.Split(byps_v, ",") {
 			s = strings.TrimSpace(s)
 			if s == "" {
 				continue
@@ -216,7 +221,7 @@ func parseBypass(s string, inwall, chkwall, white, fakeip, ischain bool) *gost.B
 
 	bp := gost.NewBypass(inwall, chkwall, white, fakeip, ischain)
 	bp.Reload(f, false)
-	go gost.PeriodReload(bp, s)
+	go gost.PeriodReload(bp, fname)
 
 	return bp
 }
@@ -338,12 +343,16 @@ func parseIPRoutes(s string) (routes []gost.IPRoute) {
 	}
 	return routes
 }
-func parseLF(s string) (L, F stringList) {
-	if s == "" {
+func parseLF(fname string) (L, F stringList) {
+	if fname == "" {
 		return
 	}
 
-	file, err := os.Open(s)
+	if strings.IndexAny(fname, "/\\") < 0 {
+		fname = zbutil.GetExeDir() + "/" + fname
+	}
+
+	file, err := os.Open(fname)
 	if err != nil {
 		return
 	}

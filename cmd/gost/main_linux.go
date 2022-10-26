@@ -23,7 +23,7 @@ var (
 	pprofEnabled  = os.Getenv("PROFILING") != ""
 )
 
-func init() {
+func cmdline_process() {
 	gost.SetLogger(&gost.LogLogger{})
 
 	var (
@@ -34,8 +34,8 @@ func init() {
 	flag.Var(&baseCfg.route.ChainNodes, "F", "forward address, can make a forward chain")
 	flag.Var(&baseCfg.route.ServeNodes, "L", "listen address, can listen on multiple ports (required)")
 	flag.IntVar(&baseCfg.route.Mark, "M", 0, "Specify out connection mark")
-	flag.Var(&_lfname, "LF", "file name which read options -F and -L from")
-	flag.Var(&_lfname, "FL", "file name which read options -F and -L from")
+	flag.Var(&_lfname, "LF", "file name which reading options -F and -L from")
+	flag.Var(&_lfname, "FL", "file name which reading options -F and -L from")
 	flag.StringVar(&configureFile, "C", "", "configure file")
 	flag.StringVar(&baseCfg.route.Interface, "I", "", "Interface to bind")
 	flag.BoolVar(&baseCfg.Debug, "D", false, "enable debug log")
@@ -60,9 +60,9 @@ func init() {
 	}
 
 	for i, fn := range _lfname {
-		fmt.Printf("fn[%d]=%s\n", i, fn)
+		fmt.Printf("------Before parseLF-----\nfn[%d]=%s\n", i, fn)
 		L, F := parseLF(fn)
-		fmt.Printf("fn[%d].L=%v  F=%v\n", i, L, F)
+		fmt.Printf("------After parseLF-----\nfn[%d]-L=%v\nfn[%d]-F=%v\n", i, L, i, F)
 		baseCfg.route.ServeNodes = append(baseCfg.route.ServeNodes, L...)
 		baseCfg.route.ChainNodes = append(baseCfg.route.ChainNodes, F...)
 	}
@@ -72,7 +72,7 @@ func init() {
 	}
 }
 func main() {
-	defer zbutil.MainStartup("/tmp")()
+	defer zbutil.MainStartup("/tmp", cmdline_process)()
 	if pprofEnabled {
 		go func() {
 			log.Log("profiling server on", pprofAddr)

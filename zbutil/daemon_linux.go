@@ -44,7 +44,7 @@ var (
 	stop_tmot int32 = 30 //服务stop的等待超时秒数，缺省30s，由命令行-f=xxx指定
 )
 
-func MainStartup(workdir string) func() {
+func MainStartup(workdir string, initchild func()) func() {
 	appName = GetExeBaseName()
 	pidFile = GetExeDir() + "/pid/" + GetExeBaseName() + ".pid"
 	envName = GetExeDir() + "/" + GetExeName() + "__Daemon"
@@ -56,7 +56,7 @@ func MainStartup(workdir string) func() {
 	}
 
 forloop:
-	for os.Getenv(envName) != "true" { //master
+	for os.Getenv(envName) != "true" { //master/parent process
 		switch {
 		case len(CmdParmLike("start")) == len("start"):
 			if isRunning() {
@@ -131,8 +131,12 @@ forloop:
 			break forloop
 		}
 		os.Exit(0)
-	}
+	} //end forloop
+	//child process or not daemon:
 	os.Setenv(envName, "false")
+	if initchild != nil {
+		initchild()
+	}
 
 	if len(workdir) > 0 {
 		os.Chdir(workdir)
@@ -144,7 +148,7 @@ forloop:
 	return func() { os.Remove(pidFile) }
 }
 
-//检查pidFile是否存在以及文件里的pid是否存活
+// 检查pidFile是否存在以及文件里的pid是否存活
 func isRunning() bool {
 	if mf, err := os.Open(pidFile); err == nil {
 		cpid, err := ioutil.ReadAll(mf)
@@ -262,7 +266,7 @@ func waitexit(cpid int) int {
 	}
 }
 
-//重启(先发送kill -HUP到运行进程，手工重启daemon ...当有运行的进程时，daemon不启动)
+// 重启(先发送kill -HUP到运行进程，手工重启daemon ...当有运行的进程时，daemon不启动)
 func restart(cpid int) {
 	syscall.Kill(cpid, syscall.SIGHUP) //kill -HUP, daemon only时，会直接退出
 	//处理结果
