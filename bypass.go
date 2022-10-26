@@ -306,9 +306,30 @@ func (bp *Bypass) Reload(r io.Reader, Period bool) error {
 		return nil
 	}
 
+	markmany := false
 	scanner, num := bufio.NewScanner(r), 0
 	for scanner.Scan() {
 		line := scanner.Text()
+	单行多块注释重复检查:
+		if !markmany {
+			if pos := strings.Index(line, "/*"); pos >= 0 {
+				if pos2 := strings.Index(line[pos+2:], "*/"); pos2 >= 0 {
+					line = line[:pos] + " " + line[pos+2:]
+					goto 单行多块注释重复检查
+				} else {
+					markmany = true
+					line = line[:pos]
+				}
+			}
+		} else {
+			if pos := strings.Index(line, "*/"); pos >= 0 {
+				line = line[pos+2:]
+				markmany = false
+				goto 单行多块注释重复检查
+			} else {
+				continue //块注释区
+			}
+		}
 		ss := splitLine(line)
 		if len(ss) == 0 {
 			continue
