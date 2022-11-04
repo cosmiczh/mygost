@@ -106,7 +106,7 @@ func DomainMatcher(pattern string) Matcher {
 		g = "*" + pattern
 	}
 	return &domainMatcher{
-		pattern: pattern,
+		pattern: strings.ReplaceAll(pattern, "*", ""),
 		glob:    glob.MustCompile(g),
 	}
 }
