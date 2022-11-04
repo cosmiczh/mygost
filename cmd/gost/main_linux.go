@@ -70,6 +70,7 @@ func cmdline_process() {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
+	go correct_router()
 }
 func main() {
 	defer zbutil.MainStartup("/tmp", cmdline_process)()

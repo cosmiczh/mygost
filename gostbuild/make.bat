@@ -28,6 +28,12 @@ set GOOS=linux
 set GOARCH=amd64
 go build -o gost-linux-x64  ../cmd/gost
 
+:: gost-linux-arm64
+echo gost-linux-arm64
+set CGO_ENABLED=0
+set GOOS=linux
+set GOARCH=arm64
+go build -o gost-linux-arm64  ../cmd/gost
 :: gost-linux-armv5 适应腾达AC18路由器
 echo gost-linux-armv5
 set CGO_ENABLED=0
@@ -49,9 +55,3 @@ set GOOS=linux
 set GOARCH=arm
 set GOARM=7
 go build -o gost-linux-armv7  ../cmd/gost
-:: gost-linux-arm64
-echo gost-linux-arm64
-set CGO_ENABLED=0
-set GOOS=linux
-set GOARCH=arm64
-go build -o gost-linux-arm64  ../cmd/gost
